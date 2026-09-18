@@ -1,0 +1,15 @@
+# LLM Wiki — Log
+
+Registro cronológico append-only. No editar entradas pasadas; solo agregar nuevas al final.
+
+## 2026-09-18
+
+- **INGEST**: `PRD.md`, `RESTRICCIONES_TECNICAS.md`, `database/reference/README_DB.md`. Se integró conocimiento de dominio en [[dominio]] y de stack/arquitectura en [[arquitectura]].
+- **INGEST**: backlog Scrum inicial generado por la skill `scrum-spec-orchestrator` (9 épicas, 24 HU) en `citas-api/docs/wiki/scrum/`. Se registraron las incógnitas abiertas de cada HU en [[riesgos]].
+- **DECISIÓN**: aprobado el `AGENTS.md` raíz y la estructura inicial de esta LLM Wiki, propuestos por el agente orquestador. Ver [[decisiones]].
+- **DECISIÓN**: aprobadas para Sprint 1 (alcance de sesión S2) las HU-001 (Registrar usuario), HU-002 (Iniciar sesión y sesión JWT) y HU-006 (Consultar catálogos fijos). Resto del backlog queda en `Borrador`.
+- **BUILD**: inicializado `citas-api` (Spring Boot 3.5.4, Maven Wrapper, arquitectura hexagonal). Implementado el bounded context `auth` con HU-001 y HU-002 (registro, login, refresh, logout). Migraciones Flyway V1–V4 (roles, users, user_roles, refresh_tokens). Verificado con `./mvnw test` (11/11 pruebas unitarias en verde) y `./mvnw clean package` exitoso; **no verificado aún** contra MySQL real ni contrato REST end-to-end (pendiente `docker compose up -d mysql`). Generado `citas-api/AGENTS.md` real con evidencia del repositorio; se eliminó `AGENTS.md.template` por quedar superseded.
+- **HALLAZGO**: al levantar `docker compose up -d mysql`, el volumen ya tenía cargado el esquema completo de `database/reference/db.sql` dentro de la base `citas_fcv_training` (de una sesión anterior a esta, no generado por el agente). Esa base es justo la que `MYSQL_DATABASE`/`DB_NAME` usaban por defecto en `.env`/`.env.example`, lo que hacía fallar Flyway ("non-empty schema but no schema history table") para cualquiera que siguiera el flujo documentado del README.
+- **DECISIÓN**: `MYSQL_DATABASE` y `DB_NAME` se cambiaron a `citas_fcv_app` en `.env`, `.env.example` (raíz) y `citas-api/.env.example`. `citas_fcv_app` es la base que gestiona Flyway/`citas-api` de aquí en adelante; `citas_fcv_training` queda intacta como copia de referencia/ERD, sin que la aplicación la toque. Ver [[decisiones]].
+- **VERIFICACIÓN E2E**: con MySQL real (`docker compose up -d mysql`) y la app corriendo (`./mvnw spring-boot:run` contra `citas_fcv_app`), se probaron por HTTP: registro exitoso (201), email duplicado (409), documento duplicado (409), contraseña corta (400), login exitoso con tokens (200), contraseña incorrecta (401), refresh exitoso (200), logout (204) y refresh con token ya revocado (401). Los 9 casos se comportaron según la HU.
+- **CIERRE**: agregadas pruebas unitarias dedicadas `RefreshAccessTokenServiceTest` y `LogoutServiceTest` (17 pruebas en total en `citas-api`, todas en verde). Documentado el contrato REST completo de `/api/v1/auth/**` en `citas-api/docs/wiki/contratos/auth-api.md`. Con toda la evidencia reunida, HU-001 y HU-002 se movieron a `Completada` en `docs/wiki/scrum/`.
