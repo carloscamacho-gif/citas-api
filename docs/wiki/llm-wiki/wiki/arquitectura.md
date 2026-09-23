@@ -9,7 +9,7 @@ Fuente: `RESTRICCIONES_TECNICAS.md`, `README.md`, `docker-compose.yml`, y el có
 ## Repos
 
 - `citas-api` (Git independiente): Java 21 + Spring Boot 3.5.4 + Maven (con Maven Wrapper) + arquitectura hexagonal + Spring Data JPA + Flyway + MySQL 8.4 + Spring Security con JWT access/refresh. **Ya inicializado**: bounded context `auth` implementa HU-001 (registro) y HU-002 (login/sesión JWT). Ver `citas-api/AGENTS.md` para el detalle verificado de la estructura y las reglas arquitectónicas.
-- `citas-web` (Git independiente): TypeScript, React o Angular (decisión pendiente del estudiante vía Stitch/Google AI Studio), Node.js 24 LTS. Sin Express/BFF; REST directo contra `citas-api`. **Aún sin inicializar.**
+- `citas-web` (Git independiente): **React 19 + TypeScript + Vite 8 + Tailwind CSS v4** (`lucide-react`, Vitest), Node.js 24. Sin Express/BFF; REST directo contra `citas-api`. **Inicializado** al importar el frontend del prototipo Stitch/AI Studio; login y registro funcionan end-to-end contra `citas-api`. Ver `citas-web/AGENTS.md`. El contrato de auth se reconció al de `citas-api` (ver [[decisiones]] 2026-09-23).
 - La raíz `citas/` no es un repositorio Git; solo orquesta.
 
 ## Infraestructura local (docker-compose.yml)
