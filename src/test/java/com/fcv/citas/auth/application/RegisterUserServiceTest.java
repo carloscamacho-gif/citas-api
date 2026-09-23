@@ -2,12 +2,15 @@ package com.fcv.citas.auth.application;
 
 import com.fcv.citas.auth.domain.exception.DocumentAlreadyUsedException;
 import com.fcv.citas.auth.domain.exception.EmailAlreadyUsedException;
+import com.fcv.citas.auth.domain.exception.InvalidInsurancePlanException;
 import com.fcv.citas.auth.domain.model.DocumentType;
 import com.fcv.citas.auth.domain.model.RoleName;
 import com.fcv.citas.auth.domain.model.User;
 import com.fcv.citas.auth.domain.port.in.RegisterUserCommand;
 import com.fcv.citas.auth.domain.port.out.PasswordHasherPort;
 import com.fcv.citas.auth.domain.port.out.UserRepositoryPort;
+import com.fcv.citas.auth.domain.port.out.InsurancePlanPort;
+import com.fcv.citas.auth.domain.port.out.UserAffiliationPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -26,16 +29,20 @@ class RegisterUserServiceTest {
 
     private UserRepositoryPort userRepository;
     private PasswordHasherPort passwordHasher;
+    private InsurancePlanPort insurancePlans;
+    private UserAffiliationPort affiliations;
     private RegisterUserService service;
 
     private static final RegisterUserCommand VALID_COMMAND = new RegisterUserCommand(
-            "Ana", "Pérez", DocumentType.CC, "1000000001", "ana.perez@example.com", "3000000000", "S3cret123!");
+            "Ana", "Pérez", DocumentType.CC, "1000000001", "ana.perez@example.com", "3000000000", "S3cret123!", null);
 
     @BeforeEach
     void setUp() {
         userRepository = mock(UserRepositoryPort.class);
         passwordHasher = mock(PasswordHasherPort.class);
-        service = new RegisterUserService(userRepository, passwordHasher);
+        insurancePlans = mock(InsurancePlanPort.class);
+        affiliations = mock(UserAffiliationPort.class);
+        service = new RegisterUserService(userRepository, passwordHasher, insurancePlans, affiliations);
     }
 
     @Test
@@ -91,5 +98,47 @@ class RegisterUserServiceTest {
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
         assertThat(captor.getValue().getPasswordHash()).isNotEqualTo(VALID_COMMAND.rawPassword());
+    }
+
+    @Test
+    void registersWithoutAffiliationWhenPlanWasNotSelected() {
+        when(userRepository.existsByEmail(VALID_COMMAND.email())).thenReturn(false);
+        when(userRepository.existsByDocument(VALID_COMMAND.documentType(), VALID_COMMAND.documentNumber())).thenReturn(false);
+        when(passwordHasher.hash(VALID_COMMAND.rawPassword())).thenReturn("hashed-value");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.register(VALID_COMMAND);
+
+        verify(affiliations, never()).create(any(), any());
+    }
+
+    @Test
+    void createsAffiliationWithSelectedActivePlan() {
+        RegisterUserCommand command = new RegisterUserCommand("Ana", "Pérez", DocumentType.CC, "1000000001",
+                "ana.perez@example.com", "3000000000", "S3cret123!", 12L);
+        when(insurancePlans.isActive(12L)).thenReturn(true);
+        when(userRepository.existsByEmail(command.email())).thenReturn(false);
+        when(userRepository.existsByDocument(command.documentType(), command.documentNumber())).thenReturn(false);
+        when(passwordHasher.hash(command.rawPassword())).thenReturn("hashed-value");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0);
+            saved.assignId(44L);
+            return saved;
+        });
+
+        service.register(command);
+
+        verify(affiliations).create(44L, 12L);
+    }
+
+    @Test
+    void rejectsMissingOrInactivePlanBeforeCreatingUser() {
+        RegisterUserCommand command = new RegisterUserCommand("Ana", "Pérez", DocumentType.CC, "1000000001",
+                "ana.perez@example.com", "3000000000", "S3cret123!", 99L);
+
+        assertThatThrownBy(() -> service.register(command)).isInstanceOf(InvalidInsurancePlanException.class);
+
+        verify(userRepository, never()).save(any());
+        verify(affiliations, never()).create(any(), any());
     }
 }

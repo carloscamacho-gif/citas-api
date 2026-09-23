@@ -7,6 +7,10 @@ import com.fcv.citas.auth.domain.port.in.RegisterUserCommand;
 import com.fcv.citas.auth.domain.port.in.RegisterUserUseCase;
 import com.fcv.citas.auth.domain.port.out.PasswordHasherPort;
 import com.fcv.citas.auth.domain.port.out.UserRepositoryPort;
+import com.fcv.citas.auth.domain.exception.InvalidInsurancePlanException;
+import com.fcv.citas.auth.domain.port.out.InsurancePlanPort;
+import com.fcv.citas.auth.domain.port.out.UserAffiliationPort;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 /** Implementa HU-001 (Registrar usuario). */
@@ -15,14 +19,23 @@ public class RegisterUserService implements RegisterUserUseCase {
 
     private final UserRepositoryPort userRepository;
     private final PasswordHasherPort passwordHasher;
+    private final InsurancePlanPort insurancePlans;
+    private final UserAffiliationPort affiliations;
 
-    public RegisterUserService(UserRepositoryPort userRepository, PasswordHasherPort passwordHasher) {
+    public RegisterUserService(UserRepositoryPort userRepository, PasswordHasherPort passwordHasher,
+                               InsurancePlanPort insurancePlans, UserAffiliationPort affiliations) {
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
+        this.insurancePlans = insurancePlans;
+        this.affiliations = affiliations;
     }
 
     @Override
+    @Transactional
     public User register(RegisterUserCommand command) {
+        if (command.insurancePlanId() != null && !insurancePlans.isActive(command.insurancePlanId())) {
+            throw new InvalidInsurancePlanException(command.insurancePlanId());
+        }
         if (userRepository.existsByEmail(command.email())) {
             throw new EmailAlreadyUsedException(command.email());
         }
@@ -40,6 +53,10 @@ public class RegisterUserService implements RegisterUserUseCase {
                 command.phone(),
                 passwordHash
         );
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        if (command.insurancePlanId() != null) {
+            affiliations.create(saved.getId(), command.insurancePlanId());
+        }
+        return saved;
     }
 }

@@ -48,7 +48,8 @@ public class AuthController {
                 request.documentNumber(),
                 request.email(),
                 request.phone(),
-                request.password()
+                request.password(),
+                request.insurancePlanId()
         ));
         return RegisterResponse.from(user);
     }

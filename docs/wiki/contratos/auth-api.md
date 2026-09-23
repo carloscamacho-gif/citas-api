@@ -43,6 +43,7 @@ Implementa HU-001. Crea una cuenta `USER`.
 | `email` | string | requerido, formato email válido |
 | `phone` | string | requerido, no vacío |
 | `password` | string | requerido, mínimo 8 caracteres |
+| `insurancePlanId` | integer | opcional; si se envía debe identificar un plan activo de `/api/v1/catalogs/plans`; crea afiliación vinculada por FK dentro del registro (`user_insurance_affiliations.plan_id`) |
 
 ```json
 {
@@ -52,7 +53,8 @@ Implementa HU-001. Crea una cuenta `USER`.
   "documentNumber": "1000000001",
   "email": "ana.perez@example.com",
   "phone": "3000000000",
-  "password": "S3cret123!"
+  "password": "S3cret123!",
+  "insurancePlanId": 1
 }
 ```
 
@@ -77,6 +79,17 @@ Nunca incluye la contraseña ni su hash (RF-01, CA-01/CA-04 de HU-001).
 | `400 Bad Request` | Validación de campos (p. ej. password < 8 caracteres, email inválido, campo faltante) | "La solicitud contiene datos inválidos" (ver `details`) |
 | `409 Conflict` | Email ya registrado | "El email '...' ya está registrado" |
 | `409 Conflict` | Documento ya registrado | "El documento '...' ya está registrado" |
+| `400 Bad Request` | Plan inexistente o inactivo | "El plan de afiliación ... no existe o está inactivo" |
+
+Omitir `insurancePlanId` o enviarlo como `null` crea la cuenta sin afiliación. La tabla `users` no almacena nombres de EPS ni de plan.
+
+## `GET /api/v1/catalogs/plans`
+
+Lectura pública para el formulario de registro. Devuelve exclusivamente planes activos, ordenados por nombre.
+
+```json
+[{ "id": 1, "code": "PLAN-SINTETICO-01", "name": "Plan Integral Básico", "active": true }]
+```
 
 ---
 

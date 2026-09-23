@@ -9,6 +9,7 @@ public record RegisterUserCommand(
         String documentNumber,
         String email,
         String phone,
-        String rawPassword
+        String rawPassword,
+        Long insurancePlanId
 ) {
 }

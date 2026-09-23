@@ -30,6 +30,7 @@ Cualquier visitante puede autorregistrarse. Es el punto de entrada de todo el si
 - Validación de unicidad de email y documento.
 - Hash adaptativo de la contraseña (BCrypt/Argon2) antes de persistir.
 - Asignación del rol `USER` al usuario creado.
+- Selección opcional de un plan activo de afiliación durante el registro; si se elige, la afiliación se crea por FK en la misma transacción. Sin selección se registra solo la cuenta.
 
 ## Fuera de alcance
 
@@ -93,6 +94,18 @@ Cualquier visitante puede autorregistrarse. Es el punto de entrada de todo el si
 **Cuando** se inspecciona el almacenamiento de la contraseña
 **Entonces** el valor persistido es un hash adaptativo, no el texto plano original
 
+### CA-05 — Afiliación opcional durante el registro
+
+**Dado** un visitante que puede omitir la selección de plan o escoger un plan activo
+**Cuando** solicita el registro
+**Entonces** la cuenta se crea sin afiliación si omitió el plan, o con una afiliación relacionada por FK si eligió un plan activo
+
+### CA-06 — Rechazo de plan inválido
+
+**Dado** un identificador de plan inexistente o inactivo
+**Cuando** se envía durante el registro
+**Entonces** la API devuelve un error controlado y no crea usuario ni afiliación
+
 ## Definition of Done
 
 - [x] Todos los criterios de aceptación obligatorios están validados con evidencia.
@@ -108,6 +121,8 @@ Cualquier visitante puede autorregistrarse. Es el punto de entrada de todo el si
 | CA-02 | Cumple | `RegisterUserServiceTest.rejectsDuplicateEmail`; end-to-end `POST /auth/register` con email repetido → `409 Conflict` | — |
 | CA-03 | Cumple | `RegisterUserServiceTest.rejectsDuplicateDocument`; end-to-end `POST /auth/register` con documento repetido → `409 Conflict` (`uq_users_document`, migración V2) | — |
 | CA-04 | Cumple | `RegisterUserServiceTest.neverPersistsRawPassword`, `BCryptPasswordHasherAdapter` | — |
+| CA-05 | Cumple | `RegisterUserServiceTest.registersWithoutAffiliationWhenPlanWasNotSelected`, `RegisterUserServiceTest.createsAffiliationWithSelectedActivePlan`; migración `V7__create_insurance_affiliations.sql` | La afiliación usa FK a `eps_plans`; no agrega nombres a `users`. |
+| CA-06 | Cumple | `RegisterUserServiceTest.rejectsMissingOrInactivePlanBeforeCreatingUser`; error controlado `400` en `GlobalExceptionHandler` | — |
 | DoD-01 | Cumple | migraciones `V1__create_roles_table.sql`, `V2__create_users_table.sql` | — |
 | DoD-02 | Cumple | [[auth-api]] (`docs/wiki/contratos/auth-api.md`), sección `POST /api/v1/auth/register` | — |
 
@@ -118,6 +133,7 @@ Cualquier visitante puede autorregistrarse. Es el punto de entrada de todo el si
 - 2026-09-18 — Estado movido a `En desarrollo`: implementado en `citas-api` (bounded context `auth`), verificado con `./mvnw test` (unitarias en verde). Pendiente prueba de integración contra MySQL real antes de poder marcarla `Completada`.
 - 2026-09-18 — Verificación end-to-end contra MySQL real (contenedor `fcv-citas-mysql`, base `citas_fcv_app`): registro exitoso (201), rechazo de email duplicado (409) y de contraseña corta (400) confirmados con la app corriendo de verdad.
 - 2026-09-18 — Verificado también el rechazo por documento duplicado end-to-end (409) y documentado el contrato REST en `docs/wiki/contratos/auth-api.md`. Todos los CA y toda la DoD están `Cumple` con evidencia: HU movida a `Completada`.
+- 2026-09-23 — Se amplió el registro con `insurancePlanId` opcional según la solicitud del estudiante; planes activos se consultan por `GET /api/v1/catalogs/plans`. Validado por pruebas backend de aplicación y pruebas frontend; contrato actualizado en `docs/wiki/contratos/auth-api.md`.
 
 ## Notas y decisiones
 

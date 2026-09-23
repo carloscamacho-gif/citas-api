@@ -14,6 +14,7 @@ public record RegisterRequest(
         @NotBlank String documentNumber,
         @NotBlank @Email String email,
         @NotBlank String phone,
-        @NotBlank @Size(min = 8, message = "La contraseña debe tener al menos 8 caracteres") String password
+        @NotBlank @Size(min = 8, message = "La contraseña debe tener al menos 8 caracteres") String password,
+        Long insurancePlanId
 ) {
 }
