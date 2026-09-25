@@ -16,6 +16,13 @@ public record Appointment(Long id, Long patientUserId, Long professionalId, Long
         return (int) Duration.between(startAt, endAt).toMinutes();
     }
 
+    public boolean isTerminal() {
+        return switch (status) {
+            case REJECTED, CANCELLED, COMPLETED, NO_SHOW -> true;
+            case REQUESTED, APPROVED -> false;
+        };
+    }
+
     public Appointment approved(Long adminUserId, LocalDateTime at) {
         return new Appointment(id, patientUserId, professionalId, locationId, specialtyId,
                 AppointmentStatus.APPROVED, reason, null, startAt, endAt, adminUserId, at);
@@ -24,5 +31,10 @@ public record Appointment(Long id, Long patientUserId, Long professionalId, Long
     public Appointment rejected(String motive) {
         return new Appointment(id, patientUserId, professionalId, locationId, specialtyId,
                 AppointmentStatus.REJECTED, reason, motive, startAt, endAt, null, null);
+    }
+
+    public Appointment cancelled() {
+        return new Appointment(id, patientUserId, professionalId, locationId, specialtyId,
+                AppointmentStatus.CANCELLED, reason, rejectionReason, startAt, endAt, approvedByUserId, approvedAt);
     }
 }

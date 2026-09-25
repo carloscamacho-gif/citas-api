@@ -19,6 +19,9 @@ public interface AppointmentRepositoryPort {
 
     List<Appointment> findByStatus(AppointmentStatus status, PendingAppointmentFilter filter);
 
+    /** Citas del paciente, más recientes primero; filtros opcionales de estado y día. */
+    List<Appointment> findByPatient(Long patientUserId, AppointmentStatus status, java.time.LocalDate date);
+
     void addHistory(StatusHistoryEntry entry);
 
     List<StatusHistoryEntry> history(Long appointmentId);
