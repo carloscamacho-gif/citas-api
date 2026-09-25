@@ -2,7 +2,7 @@
 id: HU-011
 tipo: historia-de-usuario
 titulo: "Activar/desactivar profesional"
-estado: Borrador
+estado: Aprobada
 epica: "[[EP-004-gestion-de-profesionales]]"
 esfuerzo: "Bajo"
 sprint_sugerido: "Sprint 2"

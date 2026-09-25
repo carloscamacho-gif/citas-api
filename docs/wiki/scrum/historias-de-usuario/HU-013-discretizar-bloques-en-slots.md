@@ -2,7 +2,7 @@
 id: HU-013
 tipo: historia-de-usuario
 titulo: "Discretizar bloques en slots según duración de especialidad"
-estado: Borrador
+estado: Aprobada
 epica: "[[EP-005-disponibilidad-y-agenda-profesional]]"
 esfuerzo: "Alto"
 sprint_sugerido: "Sprint 2"

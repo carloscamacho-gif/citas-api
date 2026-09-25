@@ -2,7 +2,7 @@
 id: HU-010
 tipo: historia-de-usuario
 titulo: "Crear profesional con especialidades y sedes"
-estado: Borrador
+estado: Aprobada
 epica: "[[EP-004-gestion-de-profesionales]]"
 esfuerzo: "Medio"
 sprint_sugerido: "Sprint 2"

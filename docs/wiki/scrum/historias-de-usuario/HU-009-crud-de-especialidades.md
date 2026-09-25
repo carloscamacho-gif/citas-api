@@ -2,7 +2,7 @@
 id: HU-009
 tipo: historia-de-usuario
 titulo: "CRUD de especialidades"
-estado: Borrador
+estado: Aprobada
 epica: "[[EP-003-catalogos-del-sistema]]"
 esfuerzo: "Bajo"
 sprint_sugerido: "Sprint 2"

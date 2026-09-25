@@ -2,7 +2,7 @@
 id: HU-014
 tipo: historia-de-usuario
 titulo: "Consultar disponibilidad"
-estado: Borrador
+estado: Aprobada
 epica: "[[EP-006-busqueda-y-agendamiento-de-citas]]"
 esfuerzo: "Medio"
 sprint_sugerido: "Sprint 2"

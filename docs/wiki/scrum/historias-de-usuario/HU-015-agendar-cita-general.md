@@ -2,7 +2,7 @@
 id: HU-015
 tipo: historia-de-usuario
 titulo: "Agendar cita general"
-estado: Borrador
+estado: Aprobada
 epica: "[[EP-006-busqueda-y-agendamiento-de-citas]]"
 esfuerzo: "Medio"
 sprint_sugerido: "Sprint 2"

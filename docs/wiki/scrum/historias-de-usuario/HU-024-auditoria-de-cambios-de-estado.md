@@ -2,7 +2,7 @@
 id: HU-024
 tipo: historia-de-usuario
 titulo: "Auditoría de cambios de estado"
-estado: Borrador
+estado: Aprobada
 epica: "[[EP-009-administracion-y-auditoria]]"
 esfuerzo: "Medio"
 sprint_sugerido: "Sprint 2"

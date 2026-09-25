@@ -43,6 +43,13 @@ public class User {
                 Set.of(RoleName.USER), true, Instant.now());
     }
 
+    /** Alta administrativa de un profesional ficticio (RF-07). */
+    public static User professional(String firstName, String lastName, DocumentType documentType, String documentNumber,
+                                    String email, String phone, String passwordHash) {
+        return new User(null, firstName, lastName, documentType, documentNumber, email, phone, passwordHash,
+                Set.of(RoleName.PROFESSIONAL), true, Instant.now());
+    }
+
     public Long getId() {
         return id;
     }

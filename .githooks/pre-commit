@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+# Red de verificación local (S3). Si algo falla, el commit se bloquea.
+#   1) escaneo de secretos sobre lo que se va a commitear
+#   2) pruebas del backend, cuando el commit toca código (src/, pom.xml, mvnw)
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+
+echo "[pre-commit] 1/2 escaneando secretos..."
+sh .githooks/secret-scan.sh
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+if ! printf '%s\n' "$staged" | grep -Eq '^(src/|pom\.xml$|mvnw)'; then
+  echo "[pre-commit] 2/2 sin cambios de codigo: se omiten las pruebas."
+  exit 0
+fi
+
+if [ -z "${JAVA_HOME:-}" ] && ! command -v java >/dev/null 2>&1; then
+  echo "[pre-commit] No se encontro Java (define JAVA_HOME o agrega java al PATH)." >&2
+  exit 1
+fi
+
+echo "[pre-commit] 2/2 ejecutando pruebas (./mvnw test)..."
+if ! ./mvnw -q test; then
+  echo "" >&2
+  echo "Commit bloqueado: hay pruebas fallando. Corrigelas y vuelve a intentar." >&2
+  exit 1
+fi
+echo "[pre-commit] OK"

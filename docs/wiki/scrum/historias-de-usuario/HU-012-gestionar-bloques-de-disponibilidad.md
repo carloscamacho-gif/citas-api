@@ -2,7 +2,7 @@
 id: HU-012
 tipo: historia-de-usuario
 titulo: "Gestionar bloques de disponibilidad"
-estado: Borrador
+estado: Aprobada
 epica: "[[EP-005-disponibilidad-y-agenda-profesional]]"
 esfuerzo: "Alto"
 sprint_sugerido: "Sprint 2"

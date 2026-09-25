@@ -2,7 +2,7 @@
 id: HU-016
 tipo: historia-de-usuario
 titulo: "Solicitar cita especializada"
-estado: Borrador
+estado: Aprobada
 epica: "[[EP-006-busqueda-y-agendamiento-de-citas]]"
 esfuerzo: "Medio"
 sprint_sugerido: "Sprint 2"

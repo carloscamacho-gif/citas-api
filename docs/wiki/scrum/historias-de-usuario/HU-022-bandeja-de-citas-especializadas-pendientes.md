@@ -2,7 +2,7 @@
 id: HU-022
 tipo: historia-de-usuario
 titulo: "Bandeja de citas especializadas pendientes"
-estado: Borrador
+estado: Aprobada
 epica: "[[EP-009-administracion-y-auditoria]]"
 esfuerzo: "Medio"
 sprint_sugerido: "Sprint 2"
