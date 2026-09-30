@@ -3,11 +3,16 @@ package com.fcv.citas.auth.infrastructure.security;
 import com.fcv.citas.auth.domain.model.DocumentType;
 import com.fcv.citas.auth.domain.model.RoleName;
 import com.fcv.citas.auth.domain.model.User;
+import com.fcv.citas.catalog.domain.port.in.AdminEpsPlanUseCase;
+import com.fcv.citas.catalog.domain.port.in.AdminEpsUseCase;
 import com.fcv.citas.catalog.domain.port.in.CreateSpecialtyUseCase;
 import com.fcv.citas.catalog.domain.port.in.ListActiveInsurancePlansUseCase;
+import com.fcv.citas.catalog.domain.port.in.ListInsuranceRegimesUseCase;
 import com.fcv.citas.catalog.domain.port.in.ListLocationsUseCase;
 import com.fcv.citas.catalog.domain.port.in.ListSpecialtiesUseCase;
 import com.fcv.citas.catalog.domain.port.in.UpdateSpecialtyUseCase;
+import com.fcv.citas.catalog.infrastructure.web.AdminEpsController;
+import com.fcv.citas.catalog.infrastructure.web.AdminEpsPlanController;
 import com.fcv.citas.catalog.infrastructure.web.AdminSpecialtyController;
 import com.fcv.citas.catalog.infrastructure.web.CatalogController;
 import com.fcv.citas.professional.domain.port.in.ProfessionalManagementUseCase;
@@ -59,7 +64,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * </ul>
  */
 @WebMvcTest(controllers = {
-        CatalogController.class, AdminSpecialtyController.class, AdminProfessionalController.class,
+        CatalogController.class, AdminSpecialtyController.class, AdminEpsController.class,
+        AdminEpsPlanController.class, AdminProfessionalController.class,
         AdminAppointmentController.class, AdminRescheduleController.class, ProfessionalAvailabilityController.class,
         ProfessionalAgendaController.class, ProfessionalAttentionController.class,
         AvailabilityController.class, AppointmentController.class
@@ -89,6 +95,12 @@ class SecurityAuthorizationTest {
     private CreateSpecialtyUseCase createSpecialty;
     @MockitoBean
     private UpdateSpecialtyUseCase updateSpecialty;
+    @MockitoBean
+    private AdminEpsUseCase adminEps;
+    @MockitoBean
+    private AdminEpsPlanUseCase adminEpsPlan;
+    @MockitoBean
+    private ListInsuranceRegimesUseCase listRegimes;
     @MockitoBean
     private ProfessionalManagementUseCase professionalManagement;
     @MockitoBean
@@ -166,6 +178,19 @@ class SecurityAuthorizationTest {
         mvc.perform(withBearer(get("/api/v1/admin/specialties"), admin)).andExpect(status().isOk());
         mvc.perform(withBearer(get("/api/v1/admin/professionals"), admin)).andExpect(status().isOk());
         mvc.perform(withBearer(get("/api/v1/admin/appointments/pending-specialized"), admin)).andExpect(status().isOk());
+    }
+
+    @Test
+    void onlyAdminManagesTheInsuranceCatalog() throws Exception {
+        org.mockito.Mockito.when(adminEps.list()).thenReturn(java.util.List.of());
+        org.mockito.Mockito.when(adminEpsPlan.list()).thenReturn(java.util.List.of());
+        for (RoleName role : new RoleName[]{RoleName.USER, RoleName.PROFESSIONAL}) {
+            mvc.perform(withBearer(get("/api/v1/admin/eps"), bearer(role))).andExpect(status().isForbidden());
+            mvc.perform(withBearer(get("/api/v1/admin/eps-plans"), bearer(role))).andExpect(status().isForbidden());
+        }
+        String admin = bearer(RoleName.ADMIN);
+        mvc.perform(withBearer(get("/api/v1/admin/eps"), admin)).andExpect(status().isOk());
+        mvc.perform(withBearer(get("/api/v1/admin/eps-plans"), admin)).andExpect(status().isOk());
     }
 
     // ---- PROFESSIONAL ---------------------------------------------------------------------------------

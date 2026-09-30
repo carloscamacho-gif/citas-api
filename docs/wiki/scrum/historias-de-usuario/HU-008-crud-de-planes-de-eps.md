@@ -2,7 +2,7 @@
 id: HU-008
 tipo: historia-de-usuario
 titulo: "CRUD de planes de EPS"
-estado: Borrador
+estado: Completada
 epica: "[[EP-003-catalogos-del-sistema]]"
 esfuerzo: "Bajo"
 sprint_sugerido: "Sprint 2"
@@ -93,15 +93,18 @@ Cada plan pertenece a una EPS y, según `database/reference/README_DB.md`, es el
 
 | Elemento | Resultado | Evidencia | Observación |
 |---|---|---|---|
-| CA-01 | Pendiente | — | — |
-| CA-02 | Pendiente | — | — |
-| CA-03 | Pendiente | — | — |
-| DoD-01 | Pendiente | — | — |
+| CA-01 | Cumple | `AdminEpsPlanServiceTest.createsAPlanForAnExistingEpsAndRegime`; e2e (POST /admin/eps-plans → 201 con EPS y régimen resueltos) + e2e navegador | — |
+| CA-02 | Cumple | `AdminEpsPlanServiceTest.cannotDeleteAPlanWithAffiliations` / `...deletesAnUnreferencedPlan`; e2e (borrar plan semilla con 1 afiliación → 409; borrar plan sin afiliaciones → 204) | — |
+| CA-03 | Cumple | `AdminEpsPlanServiceTest.rejectsAPlanForANonExistentEps`; e2e (POST con epsId inexistente → 404) | — |
+| DoD (migración) | Cumple | Tabla `eps_plans` en `V7__create_insurance_affiliations.sql` | No requirió migración nueva. |
+| DoD-01 | Cumple | Suite backend 135/135 + e2e API + e2e navegador ([[LOOP-HU-007-008-eps-planes]]) | — |
 
 ## Historial de validación
 
 - 2026-09-18 — HU creada en estado `Borrador` durante la planificación inicial del backlog.
+- 2026-09-30 — Implementada y verificada (backend + frontend) en S4; ver [[LOOP-HU-007-008-eps-planes]]. Estado → `Completada`.
 
 ## Notas y decisiones
 
-- Ninguna nota adicional.
+- Endpoints: `GET/POST /api/v1/admin/eps-plans`, `GET /api/v1/admin/eps-plans/regimes`, `PATCH /api/v1/admin/eps-plans/{id}` (nombre/estado; EPS/régimen/código son inmutables — el plan es el punto único de derivación), `DELETE /api/v1/admin/eps-plans/{id}` (rol ADMIN). El borrado físico solo procede si el plan no tiene afiliaciones (RF-06).
+- Persistencia JDBC (`EpsPlanJdbcAdapter`, `InsuranceRegimeJdbcAdapter`).

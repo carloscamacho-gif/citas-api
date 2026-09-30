@@ -70,6 +70,29 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler({com.fcv.citas.catalog.domain.exception.EpsNotFoundException.class,
+            com.fcv.citas.catalog.domain.exception.EpsPlanNotFoundException.class})
+    public ResponseEntity<ApiError> handleInsuranceCatalogNotFound(RuntimeException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(com.fcv.citas.catalog.domain.exception.CatalogCodeAlreadyUsedException.class)
+    public ResponseEntity<ApiError> handleCatalogCodeAlreadyUsed(RuntimeException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /** Se intentó borrar un catálogo (EPS/plan) referenciado por transacciones: hay que desactivarlo (RF-06). */
+    @ExceptionHandler(com.fcv.citas.catalog.domain.exception.CatalogInUseException.class)
+    public ResponseEntity<ApiError> handleCatalogInUse(RuntimeException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /** Validación de dominio sencilla (argumentos inválidos): error del cliente. */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     @ExceptionHandler(InvalidProfessionalException.class)
     public ResponseEntity<ApiError> handleInvalidProfessional(InvalidProfessionalException ex) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
