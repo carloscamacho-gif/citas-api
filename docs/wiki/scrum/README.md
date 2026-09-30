@@ -37,8 +37,8 @@ Supuesto documentado: como el repositorio aún no tiene código, el stack se tom
 
 ### Sprint 2 — Agendamiento núcleo (alcance de S3)
 - [[HU-005-gestionar-afiliacion-eps]]
-- [[HU-007-crud-de-eps]]
-- [[HU-008-crud-de-planes-de-eps]]
+- [[HU-007-crud-de-eps]] — `Completada` (en S4)
+- [[HU-008-crud-de-planes-de-eps]] — `Completada` (en S4)
 - [[HU-009-crud-de-especialidades]]
 - [[HU-010-crear-profesional-con-especialidades-y-sedes]]
 - [[HU-011-activar-desactivar-profesional]]
@@ -52,15 +52,35 @@ Supuesto documentado: como el repositorio aún no tiene código, el stack se tom
 
 ### Sprint 3 — Gestión de citas y agenda profesional (alcance de S3/S4)
 - [[HU-004-consultar-y-actualizar-perfil]]
-- [[HU-017-consultar-mis-citas]]
-- [[HU-018-cancelar-cita]]
-- [[HU-020-consultar-agenda-del-profesional]]
+- [[HU-017-consultar-mis-citas]] — `Completada` (en S4)
+- [[HU-018-cancelar-cita]] — `Completada` (en S4)
+- [[HU-020-consultar-agenda-del-profesional]] — `Completada` (en S4)
 
 ### Sprint 4 — Cierre del MVP (alcance de S4)
-- [[HU-003-recuperar-contrasena]]
-- [[HU-019-solicitar-reprogramacion]]
-- [[HU-021-cerrar-atencion]]
-- [[HU-023-bandeja-de-reprogramaciones-pendientes]]
+- [[HU-003-recuperar-contrasena]] — `Completada`
+- [[HU-019-solicitar-reprogramacion]] — `Completada`
+- [[HU-021-cerrar-atencion]] — `Completada`
+- [[HU-023-bandeja-de-reprogramaciones-pendientes]] — `Completada`
+
+## Trazabilidad — Sesión S4
+
+> Verticales entregados en S4 (backend hexagonal + frontend React), cada uno verificado con pruebas unitarias, e2e de API contra MySQL y e2e de navegador, y documentado con su ciclo Builder/Verifier. Todos los criterios de aceptación obligatorios figuran `Cumple` en la HU correspondiente. Estado del backend al cierre de S4: **143 pruebas unitarias en verde**, migraciones Flyway **V1–V11**.
+
+| HU | Título | Estado | Loop Builder/Verifier | Contrato REST principal | Commit `citas-api` | Commit `citas-web` |
+|---|---|---|---|---|---|---|
+| HU-017 | Consultar mis citas | `Completada` | [[LOOP-propio-mis-citas-cancelacion]] | `GET /api/v1/appointments` | `633aa3f`/`af7bf4e` | `5bd8f76` |
+| HU-018 | Cancelar cita | `Completada` | [[LOOP-propio-mis-citas-cancelacion]] | `POST /api/v1/appointments/{id}/cancel` | `af7bf4e` | `5bd8f76` |
+| HU-019 | Solicitar reprogramación | `Completada` | [[LOOP_02-reprogramacion]] | `POST /api/v1/appointments/{id}/reschedule` | `98fdcaf` | `27f8564` |
+| HU-023 | Bandeja de reprogramaciones pendientes | `Completada` | [[LOOP_02-reprogramacion]] | `GET/POST /api/v1/admin/reschedules/**` | `98fdcaf` | `27f8564` |
+| HU-020 | Consultar agenda del profesional | `Completada` | [[LOOP-HU-020-agenda-profesional]] | `GET /api/v1/professional/agenda` | `923132b` | `3d1ea4b` |
+| HU-021 | Cerrar atención (COMPLETED/NO_SHOW) | `Completada` | [[LOOP-HU-021-cerrar-atencion]] | `POST /api/v1/professional/appointments/{id}/close` | `95466de` | `66fc424` |
+| HU-007 | CRUD de EPS | `Completada` | [[LOOP-HU-007-008-eps-planes]] | `GET/POST/PATCH/DELETE /api/v1/admin/eps` | `1bdc74a` | `d7d02ec` |
+| HU-008 | CRUD de planes de EPS | `Completada` | [[LOOP-HU-007-008-eps-planes]] | `GET/POST/PATCH/DELETE /api/v1/admin/eps-plans` | `1bdc74a` | `d7d02ec` |
+| HU-003 | Recuperar contraseña | `Completada` | [[LOOP-HU-003-recuperar-contrasena]] | `POST /api/v1/auth/password-reset/{request,confirm}` | `8ea9310` | `9e31a3b` |
+
+**Migraciones Flyway añadidas en S4:** `V9` (reschedule_requests), `V10` (origen de cambio `PROFESSIONAL` en el historial), `V11` (password_reset_tokens). HU-007/008 reutilizan las tablas de `V7`.
+
+**Nota de alcance:** HU-017/018 (Sprint 3) y HU-007/008 (Sprint 2) se planificaron en sprints anteriores pero se implementaron y verificaron durante S4; se listan aquí por trazabilidad de la sesión. Las bandejas administrativas de citas especializadas (HU-022) y la auditoría de estados (HU-024) ya estaban cubiertas en S3.
 
 ## Decisiones e incógnitas pendientes
 
