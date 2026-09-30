@@ -2,7 +2,7 @@
 id: HU-020
 tipo: historia-de-usuario
 titulo: "Consultar agenda del profesional"
-estado: Borrador
+estado: Completada
 epica: "[[EP-008-atencion-del-profesional]]"
 esfuerzo: "Bajo"
 sprint_sugerido: "Sprint 3"
@@ -80,14 +80,17 @@ Vista de solo lectura restringida a las propias citas `APPROVED` del profesional
 
 | Elemento | Resultado | Evidencia | Observación |
 |---|---|---|---|
-| CA-01 | Pendiente | — | — |
-| CA-02 | Pendiente | — | — |
-| DoD-01 | Pendiente | — | — |
+| CA-01 | Cumple | `ProfessionalAgendaServiceTest.agendaIsScopedToTheAuthenticatedProfessionalAndApprovedStatus`; e2e (8 citas, todas `APPROVED`, solo del propio profesional) | La consulta se acota al profesional resuelto desde el token; no hay ruta para leer la agenda de otro. |
+| CA-02 | Cumple | `ProfessionalAgendaServiceTest.locationAndDateRangeFiltersArePassedThrough`; e2e (rango 2026-10-03 → 3 citas; sede 999 → 0) + e2e navegador (filtro por día) | — |
+| DoD (authz cruzada) | Cumple | `SecurityAuthorizationTest.onlyProfessionalsCanSeeTheirAgenda` (USER/ADMIN → 403, sin token → 401); un profesional solo obtiene su propia agenda | — |
+| DoD-01 | Cumple | Suite backend 114/114 + e2e API + e2e navegador ([[LOOP-HU-020-agenda-profesional]]) | — |
 
 ## Historial de validación
 
 - 2026-09-18 — HU creada en estado `Borrador` durante la planificación inicial del backlog.
+- 2026-09-30 — Implementada y verificada (backend + frontend) en S4; ver [[LOOP-HU-020-agenda-profesional]]. Estado → `Completada`.
 
 ## Notas y decisiones
 
-- Ninguna nota adicional.
+- Endpoint: `GET /api/v1/professional/agenda?from=&to=&locationId=` (rol PROFESSIONAL). El id autenticado es el del usuario; se resuelve a `professionals.id` vía `findByUserId`, de modo que la consulta queda acotada a ese profesional (RF-16).
+- La agenda es de solo lectura y solo lista citas `APPROVED`.

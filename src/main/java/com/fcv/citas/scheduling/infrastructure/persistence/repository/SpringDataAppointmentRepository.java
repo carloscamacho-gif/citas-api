@@ -41,4 +41,16 @@ public interface SpringDataAppointmentRepository extends JpaRepository<Appointme
     List<AppointmentJpaEntity> findByPatient(@Param("patientUserId") Long patientUserId,
                                              @Param("statusId") Long statusId,
                                              @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query("""
+            select a from AppointmentJpaEntity a
+            where a.professionalId = :professionalId
+              and a.statusId = :statusId
+              and (:locationId is null or a.locationId = :locationId)
+              and a.startAt >= :from and a.startAt < :to
+            order by a.startAt, a.id
+            """)
+    List<AppointmentJpaEntity> agenda(@Param("professionalId") Long professionalId, @Param("statusId") Long statusId,
+                                      @Param("locationId") Long locationId,
+                                      @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

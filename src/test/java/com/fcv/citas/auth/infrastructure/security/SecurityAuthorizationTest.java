@@ -19,6 +19,7 @@ import com.fcv.citas.scheduling.domain.port.in.AvailabilityQueryUseCase;
 import com.fcv.citas.scheduling.domain.port.in.BookAppointmentUseCase;
 import com.fcv.citas.scheduling.domain.port.in.CancelAppointmentUseCase;
 import com.fcv.citas.scheduling.domain.port.in.MyAppointmentsUseCase;
+import com.fcv.citas.scheduling.domain.port.in.ProfessionalAgendaUseCase;
 import com.fcv.citas.scheduling.domain.port.in.RequestRescheduleUseCase;
 import com.fcv.citas.scheduling.domain.port.in.RescheduleDecisionUseCase;
 import com.fcv.citas.scheduling.domain.port.in.RescheduleInboxUseCase;
@@ -26,6 +27,7 @@ import com.fcv.citas.scheduling.infrastructure.web.AdminAppointmentController;
 import com.fcv.citas.scheduling.infrastructure.web.AdminRescheduleController;
 import com.fcv.citas.scheduling.infrastructure.web.AppointmentController;
 import com.fcv.citas.scheduling.infrastructure.web.AvailabilityController;
+import com.fcv.citas.scheduling.infrastructure.web.ProfessionalAgendaController;
 import com.fcv.citas.scheduling.infrastructure.web.ProfessionalAvailabilityController;
 import com.fcv.citas.shared.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.Test;
@@ -57,7 +59,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(controllers = {
         CatalogController.class, AdminSpecialtyController.class, AdminProfessionalController.class,
         AdminAppointmentController.class, AdminRescheduleController.class, ProfessionalAvailabilityController.class,
-        AvailabilityController.class, AppointmentController.class
+        ProfessionalAgendaController.class, AvailabilityController.class, AppointmentController.class
 })
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtTokenIssuerAdapter.class, GlobalExceptionHandler.class})
 @TestPropertySource(properties = {
@@ -90,6 +92,8 @@ class SecurityAuthorizationTest {
     private AppointmentDecisionUseCase appointmentDecision;
     @MockitoBean
     private AvailabilityBlockUseCase availabilityBlocks;
+    @MockitoBean
+    private ProfessionalAgendaUseCase professionalAgenda;
     @MockitoBean
     private AvailabilityQueryUseCase availabilityQuery;
     @MockitoBean
@@ -169,6 +173,17 @@ class SecurityAuthorizationTest {
                 .andExpect(status().isForbidden());
         mvc.perform(withBearer(get("/api/v1/professional/availability-blocks"), bearer(RoleName.PROFESSIONAL)))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void onlyProfessionalsCanSeeTheirAgenda() throws Exception {
+        org.mockito.Mockito.when(professionalAgenda.agenda(org.mockito.ArgumentMatchers.anyLong(),
+                        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any()))
+                .thenReturn(java.util.List.of());
+        mvc.perform(withBearer(get("/api/v1/professional/agenda"), bearer(RoleName.USER))).andExpect(status().isForbidden());
+        mvc.perform(withBearer(get("/api/v1/professional/agenda"), bearer(RoleName.ADMIN))).andExpect(status().isForbidden());
+        mvc.perform(withBearer(get("/api/v1/professional/agenda"), bearer(RoleName.PROFESSIONAL))).andExpect(status().isOk());
     }
 
     // ---- USER -----------------------------------------------------------------------------------------

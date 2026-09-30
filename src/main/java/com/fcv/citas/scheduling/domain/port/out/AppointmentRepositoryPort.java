@@ -22,6 +22,10 @@ public interface AppointmentRepositoryPort {
     /** Citas del paciente, más recientes primero; filtros opcionales de estado y día. */
     List<Appointment> findByPatient(Long patientUserId, AppointmentStatus status, java.time.LocalDate date);
 
+    /** Agenda del profesional: sus citas en un estado dado, dentro de un rango de días y (opcional) sede. */
+    List<Appointment> findByProfessional(Long professionalId, AppointmentStatus status,
+                                         java.time.LocalDate from, java.time.LocalDate to, Long locationId);
+
     void addHistory(StatusHistoryEntry entry);
 
     List<StatusHistoryEntry> history(Long appointmentId);
