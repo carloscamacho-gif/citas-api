@@ -1,0 +1,32 @@
+package com.fcv.citas.scheduling.domain.port.out;
+
+import com.fcv.citas.scheduling.domain.model.Appointment;
+import com.fcv.citas.scheduling.domain.model.AppointmentStatus;
+import com.fcv.citas.scheduling.domain.model.StatusHistoryEntry;
+import com.fcv.citas.scheduling.domain.port.in.PendingAppointmentFilter;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface AppointmentRepositoryPort {
+
+    Appointment save(Appointment appointment);
+
+    Optional<Appointment> findById(Long id);
+
+    /** Bloquea la fila hasta el fin de la transacción: evita dos decisiones simultáneas sobre la misma cita. */
+    Optional<Appointment> findByIdForUpdate(Long id);
+
+    List<Appointment> findByStatus(AppointmentStatus status, PendingAppointmentFilter filter);
+
+    /** Citas del paciente, más recientes primero; filtros opcionales de estado y día. */
+    List<Appointment> findByPatient(Long patientUserId, AppointmentStatus status, java.time.LocalDate date);
+
+    /** Agenda del profesional: sus citas en un estado dado, dentro de un rango de días y (opcional) sede. */
+    List<Appointment> findByProfessional(Long professionalId, AppointmentStatus status,
+                                         java.time.LocalDate from, java.time.LocalDate to, Long locationId);
+
+    void addHistory(StatusHistoryEntry entry);
+
+    List<StatusHistoryEntry> history(Long appointmentId);
+}

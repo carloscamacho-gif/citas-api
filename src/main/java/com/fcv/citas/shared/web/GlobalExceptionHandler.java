@@ -1,0 +1,163 @@
+package com.fcv.citas.shared.web;
+
+import com.fcv.citas.auth.domain.exception.DocumentAlreadyUsedException;
+import com.fcv.citas.auth.domain.exception.EmailAlreadyUsedException;
+import com.fcv.citas.auth.domain.exception.InvalidCredentialsException;
+import com.fcv.citas.auth.domain.exception.InvalidRefreshTokenException;
+import com.fcv.citas.auth.domain.exception.InvalidInsurancePlanException;
+import com.fcv.citas.catalog.domain.exception.InvalidSpecialtyDurationException;
+import com.fcv.citas.catalog.domain.exception.SpecialtyCodeAlreadyUsedException;
+import com.fcv.citas.catalog.domain.exception.SpecialtyNotFoundException;
+import com.fcv.citas.professional.domain.exception.InvalidProfessionalException;
+import com.fcv.citas.professional.domain.exception.ProfessionalNotFoundException;
+import com.fcv.citas.scheduling.domain.exception.AppointmentAccessDeniedException;
+import com.fcv.citas.scheduling.domain.exception.AppointmentNotFoundException;
+import com.fcv.citas.scheduling.domain.exception.AvailabilityBlockNotFoundException;
+import com.fcv.citas.scheduling.domain.exception.InvalidSchedulingException;
+import com.fcv.citas.scheduling.domain.exception.SchedulingConflictException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.util.List;
+
+/** Traduce excepciones de dominio/validación a respuestas HTTP consistentes (RF-20). */
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(EmailAlreadyUsedException.class)
+    public ResponseEntity<ApiError> handleEmailAlreadyUsed(EmailAlreadyUsedException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(DocumentAlreadyUsedException.class)
+    public ResponseEntity<ApiError> handleDocumentAlreadyUsed(DocumentAlreadyUsedException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidInsurancePlanException.class)
+    public ResponseEntity<ApiError> handleInvalidInsurancePlan(InvalidInsurancePlanException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    /** HU-003: token de recuperación inexistente, usado o expirado → error del cliente, sin filtrar detalles. */
+    @ExceptionHandler(com.fcv.citas.auth.domain.exception.InvalidPasswordResetTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidPasswordResetToken(RuntimeException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(SpecialtyCodeAlreadyUsedException.class)
+    public ResponseEntity<ApiError> handleSpecialtyCodeAlreadyUsed(SpecialtyCodeAlreadyUsedException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(SpecialtyNotFoundException.class)
+    public ResponseEntity<ApiError> handleSpecialtyNotFound(SpecialtyNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidSpecialtyDurationException.class)
+    public ResponseEntity<ApiError> handleInvalidSpecialtyDuration(InvalidSpecialtyDurationException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler({com.fcv.citas.catalog.domain.exception.EpsNotFoundException.class,
+            com.fcv.citas.catalog.domain.exception.EpsPlanNotFoundException.class})
+    public ResponseEntity<ApiError> handleInsuranceCatalogNotFound(RuntimeException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(com.fcv.citas.catalog.domain.exception.CatalogCodeAlreadyUsedException.class)
+    public ResponseEntity<ApiError> handleCatalogCodeAlreadyUsed(RuntimeException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /** Se intentó borrar un catálogo (EPS/plan) referenciado por transacciones: hay que desactivarlo (RF-06). */
+    @ExceptionHandler(com.fcv.citas.catalog.domain.exception.CatalogInUseException.class)
+    public ResponseEntity<ApiError> handleCatalogInUse(RuntimeException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /** Validación de dominio sencilla (argumentos inválidos): error del cliente. */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidProfessionalException.class)
+    public ResponseEntity<ApiError> handleInvalidProfessional(InvalidProfessionalException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(ProfessionalNotFoundException.class)
+    public ResponseEntity<ApiError> handleProfessionalNotFound(ProfessionalNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidSchedulingException.class)
+    public ResponseEntity<ApiError> handleInvalidScheduling(InvalidSchedulingException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    /** Horario ocupado, solapamiento o decisión repetida (contrato scheduling-api). */
+    @ExceptionHandler(SchedulingConflictException.class)
+    public ResponseEntity<ApiError> handleSchedulingConflict(SchedulingConflictException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler({AvailabilityBlockNotFoundException.class, AppointmentNotFoundException.class,
+            com.fcv.citas.scheduling.domain.exception.RescheduleRequestNotFoundException.class})
+    public ResponseEntity<ApiError> handleSchedulingNotFound(RuntimeException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(AppointmentAccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAppointmentAccessDenied(AppointmentAccessDeniedException ex) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    /** Cuerpo JSON ilegible o con un valor de enum/fecha inválido: error del cliente, no del servidor. */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleUnreadableBody(HttpMessageNotReadableException ex) {
+        return build(HttpStatus.BAD_REQUEST, "El cuerpo de la solicitud no es un JSON válido o tiene un valor inválido");
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiError> handleMissingParameter(MissingServletRequestParameterException ex) {
+        return build(HttpStatus.BAD_REQUEST, "Falta el parámetro obligatorio '%s'".formatted(ex.getParameterName()));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return build(HttpStatus.BAD_REQUEST, "El parámetro '%s' tiene un valor inválido".formatted(ex.getName()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex) {
+        List<String> details = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> "%s: %s".formatted(error.getField(), error.getDefaultMessage()))
+                .toList();
+        ApiError body = ApiError.of(HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                "La solicitud contiene datos inválidos", details);
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    private ResponseEntity<ApiError> build(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(ApiError.of(status.value(), status.getReasonPhrase(), message));
+    }
+}
