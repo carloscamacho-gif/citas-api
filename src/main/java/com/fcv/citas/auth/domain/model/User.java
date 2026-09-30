@@ -50,6 +50,12 @@ public class User {
                 Set.of(RoleName.PROFESSIONAL), true, Instant.now());
     }
 
+    /** Copia con una nueva contraseña ya hasheada (HU-003: recuperación de contraseña). */
+    public User withPasswordHash(String newPasswordHash) {
+        return new User(id, firstName, lastName, documentType, documentNumber, email, phone, newPasswordHash,
+                roles, active, createdAt);
+    }
+
     public Long getId() {
         return id;
     }

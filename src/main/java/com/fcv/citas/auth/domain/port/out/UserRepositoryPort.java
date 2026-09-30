@@ -17,4 +17,7 @@ public interface UserRepositoryPort {
     Optional<User> findByEmail(String email);
 
     Optional<User> findById(Long id);
+
+    /** Actualiza solo la contraseña (hasheada) de un usuario existente. Usado por la recuperación (HU-003). */
+    void updatePassword(Long userId, String newPasswordHash);
 }

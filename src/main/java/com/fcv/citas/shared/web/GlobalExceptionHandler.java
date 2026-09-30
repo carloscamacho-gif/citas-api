@@ -55,6 +55,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
+    /** HU-003: token de recuperación inexistente, usado o expirado → error del cliente, sin filtrar detalles. */
+    @ExceptionHandler(com.fcv.citas.auth.domain.exception.InvalidPasswordResetTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidPasswordResetToken(RuntimeException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     @ExceptionHandler(SpecialtyCodeAlreadyUsedException.class)
     public ResponseEntity<ApiError> handleSpecialtyCodeAlreadyUsed(SpecialtyCodeAlreadyUsedException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());

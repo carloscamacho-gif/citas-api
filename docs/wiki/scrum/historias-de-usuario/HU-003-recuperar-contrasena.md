@@ -2,7 +2,7 @@
 id: HU-003
 tipo: historia-de-usuario
 titulo: "Recuperar contraseña"
-estado: Borrador
+estado: Completada
 epica: "[[EP-001-autenticacion-y-sesion]]"
 esfuerzo: "Medio"
 sprint_sugerido: "Sprint 4"
@@ -99,15 +99,22 @@ El envío real de correo es opcional en este laboratorio: en desarrollo el token
 
 | Elemento | Resultado | Evidencia | Observación |
 |---|---|---|---|
-| CA-01 | Pendiente | — | — |
-| CA-02 | Pendiente | — | — |
-| CA-03 | Pendiente | — | — |
-| DoD-01 | Pendiente | — | — |
+| CA-01 | Cumple | `RequestPasswordResetServiceTest` (token de un solo uso, invalida anteriores, sin enumeración); e2e (POST request → devToken; email inexistente → mismo mensaje, devToken null) | — |
+| CA-02 | Cumple | `ResetPasswordServiceTest.validTokenUpdatesThePasswordAndConsumesTheToken`; e2e (confirm → 204; login clave nueva → 200; clave vieja → 401) + e2e navegador | — |
+| CA-03 | Cumple | `ResetPasswordServiceTest` (expirado/usado/inexistente → rechazo); e2e (reusar token consumido → 400; token basura → 400) | — |
+| DoD (migración) | Cumple | `V11__create_password_reset_tokens.sql` | — |
+| DoD (no loguear contraseña) | Cumple | Verificado en el log de ejecución: 0 apariciones de la contraseña; el token se persiste como hash SHA-256 (64 hex), nunca en crudo | — |
+| DoD-01 | Cumple | Suite backend 143/143 + e2e API + e2e navegador ([[LOOP-HU-003-recuperar-contrasena]]) | — |
 
 ## Historial de validación
 
 - 2026-09-18 — HU creada en estado `Borrador` durante la planificación inicial del backlog; sugerida para Sprint 4 (alcance de S4) según `GUIA_SESIONES_S2_S6.md`.
+- 2026-09-30 — Implementada y verificada (backend + frontend) en S4; ver [[LOOP-HU-003-recuperar-contrasena]]. Estado → `Completada`.
 
 ## Notas y decisiones
 
-- Decisión pendiente del estudiante: mecanismo concreto de exposición del token en desarrollo (log vs. campo en la respuesta HTTP). Ambas opciones son válidas según el PRD; se debe documentar la elegida en el contrato REST.
+- **Mecanismo de exposición del token elegido (laboratorio):** ambos canales, controlados por la propiedad `app.password-reset.expose-token` (default `true` en laboratorio, debe ser `false` en producción). Cuando está activa: (a) el token se registra en log estructurado y (b) viaja en el campo `devToken` de la respuesta de solicitud. La contraseña nueva nunca se registra.
+- **Contrato REST:**
+  - `POST /api/v1/auth/password-reset/request` — cuerpo `{ "email": "..." }`. Responde **200** siempre (sin enumeración): `{ "message": "...", "devToken": "<token|null>" }`.
+  - `POST /api/v1/auth/password-reset/confirm` — cuerpo `{ "token": "...", "newPassword": "..." (≥8) }`. **204** al éxito; **400** si el token es inválido/usado/expirado o la contraseña es muy corta.
+- El token se genera como valor aleatorio de 256 bits (URL-safe) y solo se persiste su hash SHA-256; expira en `app.password-reset.minutes` (default 30) y una nueva solicitud invalida las anteriores del mismo usuario.

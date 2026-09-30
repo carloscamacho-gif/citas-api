@@ -31,6 +31,11 @@ app:
     refresh-days: ${JWT_REFRESH_DAYS:7}
   cors:
     allowed-origins: ${FRONTEND_ORIGIN:http://localhost:5173,http://localhost:4200}
+  # HU-003: recuperación de contraseña. `expose-token` es una facilidad de LABORATORIO (sin SMTP) que
+  # devuelve el token en la respuesta y lo registra en log; debe ser `false` en un entorno real.
+  password-reset:
+    minutes: ${PASSWORD_RESET_MINUTES:30}
+    expose-token: ${PASSWORD_RESET_EXPOSE_TOKEN:true}
 
 management:
   endpoints:

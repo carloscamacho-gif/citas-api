@@ -119,6 +119,10 @@ public class UserJpaEntity {
         return passwordHash;
     }
 
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
     public boolean isActive() {
         return active;
     }

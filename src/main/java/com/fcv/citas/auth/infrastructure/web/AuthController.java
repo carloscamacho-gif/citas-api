@@ -7,7 +7,12 @@ import com.fcv.citas.auth.domain.port.in.LogoutUseCase;
 import com.fcv.citas.auth.domain.port.in.RefreshAccessTokenUseCase;
 import com.fcv.citas.auth.domain.port.in.RegisterUserCommand;
 import com.fcv.citas.auth.domain.port.in.RegisterUserUseCase;
+import com.fcv.citas.auth.domain.port.in.RequestPasswordResetUseCase;
+import com.fcv.citas.auth.domain.port.in.ResetPasswordUseCase;
 import com.fcv.citas.auth.infrastructure.web.dto.LoginRequest;
+import com.fcv.citas.auth.infrastructure.web.dto.PasswordResetConfirmRequest;
+import com.fcv.citas.auth.infrastructure.web.dto.PasswordResetRequest;
+import com.fcv.citas.auth.infrastructure.web.dto.PasswordResetRequestResponse;
 import com.fcv.citas.auth.infrastructure.web.dto.RefreshRequest;
 import com.fcv.citas.auth.infrastructure.web.dto.RegisterRequest;
 import com.fcv.citas.auth.infrastructure.web.dto.RegisterResponse;
@@ -29,13 +34,19 @@ public class AuthController {
     private final LoginUseCase loginUseCase;
     private final RefreshAccessTokenUseCase refreshAccessTokenUseCase;
     private final LogoutUseCase logoutUseCase;
+    private final RequestPasswordResetUseCase requestPasswordResetUseCase;
+    private final ResetPasswordUseCase resetPasswordUseCase;
 
     public AuthController(RegisterUserUseCase registerUserUseCase, LoginUseCase loginUseCase,
-                           RefreshAccessTokenUseCase refreshAccessTokenUseCase, LogoutUseCase logoutUseCase) {
+                           RefreshAccessTokenUseCase refreshAccessTokenUseCase, LogoutUseCase logoutUseCase,
+                           RequestPasswordResetUseCase requestPasswordResetUseCase,
+                           ResetPasswordUseCase resetPasswordUseCase) {
         this.registerUserUseCase = registerUserUseCase;
         this.loginUseCase = loginUseCase;
         this.refreshAccessTokenUseCase = refreshAccessTokenUseCase;
         this.logoutUseCase = logoutUseCase;
+        this.requestPasswordResetUseCase = requestPasswordResetUseCase;
+        this.resetPasswordUseCase = resetPasswordUseCase;
     }
 
     @PostMapping("/register")
@@ -70,5 +81,19 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(@Valid @RequestBody RefreshRequest request) {
         logoutUseCase.logout(request.refreshToken());
+    }
+
+    /** HU-003: solicita la recuperación. Responde igual exista o no la cuenta (sin enumeración). */
+    @PostMapping("/password-reset/request")
+    public PasswordResetRequestResponse requestPasswordReset(@Valid @RequestBody PasswordResetRequest request) {
+        String devToken = requestPasswordResetUseCase.request(request.email()).orElse(null);
+        return PasswordResetRequestResponse.of(devToken);
+    }
+
+    /** HU-003: cambia la contraseña con un token vigente y no usado, consumiéndolo. */
+    @PostMapping("/password-reset/confirm")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequest request) {
+        resetPasswordUseCase.reset(request.token(), request.newPassword());
     }
 }

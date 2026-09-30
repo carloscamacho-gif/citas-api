@@ -57,6 +57,14 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
         return userRepository.findById(id).map(UserMapper::toDomain);
     }
 
+    @Override
+    public void updatePassword(Long userId, String newPasswordHash) {
+        userRepository.findById(userId).ifPresent(entity -> {
+            entity.setPasswordHash(newPasswordHash);
+            userRepository.save(entity);
+        });
+    }
+
     private RoleJpaEntity resolveRole(RoleName roleName) {
         return roleRepository.findByName(roleName.name())
                 .orElseThrow(() -> new IllegalStateException(
