@@ -26,6 +26,10 @@ public interface AppointmentRepositoryPort {
     List<Appointment> findByProfessional(Long professionalId, AppointmentStatus status,
                                          java.time.LocalDate from, java.time.LocalDate to, Long locationId);
 
+    /** Citas en un estado dado dentro de un rango de días y (opcional) sede (para automatizaciones S5). */
+    List<Appointment> findByStatusInRange(AppointmentStatus status, java.time.LocalDate from,
+                                          java.time.LocalDate to, Long locationId);
+
     void addHistory(StatusHistoryEntry entry);
 
     List<StatusHistoryEntry> history(Long appointmentId);

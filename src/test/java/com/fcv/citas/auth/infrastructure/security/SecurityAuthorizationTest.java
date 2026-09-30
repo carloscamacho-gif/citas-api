@@ -29,6 +29,7 @@ import com.fcv.citas.scheduling.domain.port.in.ProfessionalAgendaUseCase;
 import com.fcv.citas.scheduling.domain.port.in.RequestRescheduleUseCase;
 import com.fcv.citas.scheduling.domain.port.in.RescheduleDecisionUseCase;
 import com.fcv.citas.scheduling.domain.port.in.RescheduleInboxUseCase;
+import com.fcv.citas.scheduling.domain.port.in.UpcomingAppointmentsUseCase;
 import com.fcv.citas.scheduling.infrastructure.web.AdminAppointmentController;
 import com.fcv.citas.scheduling.infrastructure.web.AdminRescheduleController;
 import com.fcv.citas.scheduling.infrastructure.web.AppointmentController;
@@ -106,6 +107,8 @@ class SecurityAuthorizationTest {
     @MockitoBean
     private AppointmentDecisionUseCase appointmentDecision;
     @MockitoBean
+    private UpcomingAppointmentsUseCase upcomingAppointments;
+    @MockitoBean
     private AvailabilityBlockUseCase availabilityBlocks;
     @MockitoBean
     private ProfessionalAgendaUseCase professionalAgenda;
@@ -169,6 +172,8 @@ class SecurityAuthorizationTest {
             mvc.perform(withBearer(get("/api/v1/admin/professionals"), bearer(role))).andExpect(status().isForbidden());
             mvc.perform(withBearer(get("/api/v1/admin/appointments/pending-specialized"), bearer(role)))
                     .andExpect(status().isForbidden());
+            mvc.perform(withBearer(get("/api/v1/admin/appointments/upcoming"), bearer(role)))
+                    .andExpect(status().isForbidden());
         }
     }
 
@@ -178,6 +183,9 @@ class SecurityAuthorizationTest {
         mvc.perform(withBearer(get("/api/v1/admin/specialties"), admin)).andExpect(status().isOk());
         mvc.perform(withBearer(get("/api/v1/admin/professionals"), admin)).andExpect(status().isOk());
         mvc.perform(withBearer(get("/api/v1/admin/appointments/pending-specialized"), admin)).andExpect(status().isOk());
+        org.mockito.Mockito.when(upcomingAppointments.upcoming(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(java.util.List.of());
+        mvc.perform(withBearer(get("/api/v1/admin/appointments/upcoming"), admin)).andExpect(status().isOk());
     }
 
     @Test

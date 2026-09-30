@@ -11,6 +11,7 @@ import com.fcv.citas.scheduling.domain.model.StatusHistoryEntry;
 import com.fcv.citas.scheduling.domain.port.in.AppointmentDecision;
 import com.fcv.citas.scheduling.domain.port.in.AppointmentDecisionUseCase;
 import com.fcv.citas.scheduling.domain.port.in.PendingAppointmentFilter;
+import com.fcv.citas.scheduling.domain.port.out.AppointmentEventPublisherPort;
 import com.fcv.citas.scheduling.domain.port.out.AppointmentRepositoryPort;
 import com.fcv.citas.scheduling.domain.port.out.SchedulingRepositoryPort;
 import org.springframework.stereotype.Service;
@@ -27,13 +28,16 @@ public class AppointmentDecisionService implements AppointmentDecisionUseCase {
     private final AppointmentRepositoryPort appointments;
     private final SchedulingRepositoryPort scheduling;
     private final AppointmentDetailsAssembler assembler;
+    private final AppointmentEventPublisherPort events;
     private final Clock clock;
 
     public AppointmentDecisionService(AppointmentRepositoryPort appointments, SchedulingRepositoryPort scheduling,
-                                      AppointmentDetailsAssembler assembler, Clock clock) {
+                                      AppointmentDetailsAssembler assembler, AppointmentEventPublisherPort events,
+                                      Clock clock) {
         this.appointments = appointments;
         this.scheduling = scheduling;
         this.assembler = assembler;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -73,6 +77,8 @@ public class AppointmentDecisionService implements AppointmentDecisionUseCase {
         Appointment saved = appointments.save(updated);
         appointments.addHistory(new StatusHistoryEntry(appointmentId, saved.status(), adminUserId,
                 ChangeSource.ADMIN, historyReason, now));
+        // WF-002: notifica el cambio de estado tras el commit (APPROVED/REJECTED).
+        events.publishStatusChanged(appointmentId, saved.status(), ChangeSource.ADMIN, adminUserId);
         return assembler.assemble(saved);
     }
 }

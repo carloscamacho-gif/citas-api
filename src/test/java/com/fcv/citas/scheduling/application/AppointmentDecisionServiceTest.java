@@ -16,6 +16,7 @@ import com.fcv.citas.scheduling.domain.model.ChangeSource;
 import com.fcv.citas.scheduling.domain.model.StatusHistoryEntry;
 import com.fcv.citas.scheduling.domain.port.in.AppointmentDecision;
 import com.fcv.citas.scheduling.domain.port.in.PendingAppointmentFilter;
+import com.fcv.citas.scheduling.domain.port.out.AppointmentEventPublisherPort;
 import com.fcv.citas.scheduling.domain.port.out.AppointmentRepositoryPort;
 import com.fcv.citas.scheduling.domain.port.out.SchedulingRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,12 +48,14 @@ class AppointmentDecisionServiceTest {
 
     private AppointmentRepositoryPort appointments;
     private SchedulingRepositoryPort scheduling;
+    private AppointmentEventPublisherPort events;
     private AppointmentDecisionService service;
 
     @BeforeEach
     void setUp() {
         appointments = mock(AppointmentRepositoryPort.class);
         scheduling = mock(SchedulingRepositoryPort.class);
+        events = mock(AppointmentEventPublisherPort.class);
         ProfessionalRepositoryPort professionals = mock(ProfessionalRepositoryPort.class);
         SpecialtyRepositoryPort specialties = mock(SpecialtyRepositoryPort.class);
         LocationRepositoryPort locations = mock(LocationRepositoryPort.class);
@@ -62,7 +65,7 @@ class AppointmentDecisionServiceTest {
         when(locations.findById(1L)).thenReturn(Optional.of(new Location(1L, "HIC", "Hospital Internacional", true)));
         Clock clock = Clock.fixed(Instant.parse("2026-09-25T15:00:00Z"), ZoneId.of("America/Bogota"));
         service = new AppointmentDecisionService(appointments, scheduling,
-                new AppointmentDetailsAssembler(professionals, specialties, locations), clock);
+                new AppointmentDetailsAssembler(professionals, specialties, locations), events, clock);
         when(appointments.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -90,6 +93,8 @@ class AppointmentDecisionServiceTest {
         assertThat(history.getValue().status()).isEqualTo(AppointmentStatus.APPROVED);
         assertThat(history.getValue().source()).isEqualTo(ChangeSource.ADMIN);
         assertThat(history.getValue().changedByUserId()).isEqualTo(ADMIN_ID);
+        // WF-002: se publica el evento APPROVED con fuente ADMIN.
+        verify(events).publishStatusChanged(APPOINTMENT_ID, AppointmentStatus.APPROVED, ChangeSource.ADMIN, ADMIN_ID);
     }
 
     @Test
@@ -119,6 +124,7 @@ class AppointmentDecisionServiceTest {
         assertThat(history.getValue().status()).isEqualTo(AppointmentStatus.REJECTED);
         assertThat(history.getValue().reason()).isEqualTo("Sin cupo clínico");
         assertThat(history.getValue().source()).isEqualTo(ChangeSource.ADMIN);
+        verify(events).publishStatusChanged(APPOINTMENT_ID, AppointmentStatus.REJECTED, ChangeSource.ADMIN, ADMIN_ID);
     }
 
     @Test

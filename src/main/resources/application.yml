@@ -36,6 +36,13 @@ app:
   password-reset:
     minutes: ${PASSWORD_RESET_MINUTES:30}
     expose-token: ${PASSWORD_RESET_EXPOSE_TOKEN:true}
+  # S5 (WF-002): publicación de eventos de cambio de estado hacia n8n. Desactivado por defecto; al habilitarlo
+  # hay que dar la URL del webhook y el bearer (viven en entorno, nunca en el cuerpo ni en el repositorio).
+  n8n:
+    webhook:
+      enabled: ${N8N_WEBHOOK_ENABLED:false}
+      url: ${N8N_WEBHOOK_URL:}
+      bearer-token: ${N8N_WEBHOOK_BEARER_TOKEN:}
 
 management:
   endpoints:

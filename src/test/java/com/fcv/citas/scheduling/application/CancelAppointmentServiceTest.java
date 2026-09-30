@@ -11,6 +11,7 @@ import com.fcv.citas.scheduling.domain.model.AppointmentDetails;
 import com.fcv.citas.scheduling.domain.model.AppointmentStatus;
 import com.fcv.citas.scheduling.domain.model.ChangeSource;
 import com.fcv.citas.scheduling.domain.model.StatusHistoryEntry;
+import com.fcv.citas.scheduling.domain.port.out.AppointmentEventPublisherPort;
 import com.fcv.citas.scheduling.domain.port.out.AppointmentRepositoryPort;
 import com.fcv.citas.scheduling.domain.port.out.SchedulingRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,17 +45,19 @@ class CancelAppointmentServiceTest {
 
     private AppointmentRepositoryPort appointments;
     private SchedulingRepositoryPort scheduling;
+    private AppointmentEventPublisherPort events;
     private CancelAppointmentService service;
 
     @BeforeEach
     void setUp() {
         appointments = mock(AppointmentRepositoryPort.class);
         scheduling = mock(SchedulingRepositoryPort.class);
+        events = mock(AppointmentEventPublisherPort.class);
         ProfessionalRepositoryPort professionals = mock(ProfessionalRepositoryPort.class);
         SpecialtyRepositoryPort specialties = mock(SpecialtyRepositoryPort.class);
         LocationRepositoryPort locations = mock(LocationRepositoryPort.class);
         service = new CancelAppointmentService(appointments, scheduling,
-                new AppointmentDetailsAssembler(professionals, specialties, locations), CLOCK);
+                new AppointmentDetailsAssembler(professionals, specialties, locations), events, CLOCK);
         when(appointments.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -80,6 +83,8 @@ class CancelAppointmentServiceTest {
         assertThat(history.getValue().status()).isEqualTo(AppointmentStatus.CANCELLED);
         assertThat(history.getValue().source()).isEqualTo(ChangeSource.USER);
         assertThat(history.getValue().changedByUserId()).isEqualTo(PATIENT);
+        // WF-002: se publica el evento CANCELLED con fuente USER.
+        verify(events).publishStatusChanged(APPOINTMENT_ID, AppointmentStatus.CANCELLED, ChangeSource.USER, PATIENT);
     }
 
     @Test

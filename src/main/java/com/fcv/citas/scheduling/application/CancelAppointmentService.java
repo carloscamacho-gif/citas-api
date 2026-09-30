@@ -9,6 +9,7 @@ import com.fcv.citas.scheduling.domain.model.AppointmentStatus;
 import com.fcv.citas.scheduling.domain.model.ChangeSource;
 import com.fcv.citas.scheduling.domain.model.StatusHistoryEntry;
 import com.fcv.citas.scheduling.domain.port.in.CancelAppointmentUseCase;
+import com.fcv.citas.scheduling.domain.port.out.AppointmentEventPublisherPort;
 import com.fcv.citas.scheduling.domain.port.out.AppointmentRepositoryPort;
 import com.fcv.citas.scheduling.domain.port.out.SchedulingRepositoryPort;
 import org.springframework.stereotype.Service;
@@ -24,13 +25,16 @@ public class CancelAppointmentService implements CancelAppointmentUseCase {
     private final AppointmentRepositoryPort appointments;
     private final SchedulingRepositoryPort scheduling;
     private final AppointmentDetailsAssembler assembler;
+    private final AppointmentEventPublisherPort events;
     private final Clock clock;
 
     public CancelAppointmentService(AppointmentRepositoryPort appointments, SchedulingRepositoryPort scheduling,
-                                    AppointmentDetailsAssembler assembler, Clock clock) {
+                                    AppointmentDetailsAssembler assembler, AppointmentEventPublisherPort events,
+                                    Clock clock) {
         this.appointments = appointments;
         this.scheduling = scheduling;
         this.assembler = assembler;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -55,6 +59,8 @@ public class CancelAppointmentService implements CancelAppointmentUseCase {
         scheduling.releaseSlots(appointmentId);
         appointments.addHistory(new StatusHistoryEntry(appointmentId, AppointmentStatus.CANCELLED, patientUserId,
                 ChangeSource.USER, null, now));
+        // WF-002: notifica la cancelación tras el commit.
+        events.publishStatusChanged(appointmentId, AppointmentStatus.CANCELLED, ChangeSource.USER, patientUserId);
         return assembler.assemble(cancelled);
     }
 }

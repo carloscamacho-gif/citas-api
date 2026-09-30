@@ -86,6 +86,15 @@ public class AppointmentRepositoryAdapter implements AppointmentRepositoryPort {
     }
 
     @Override
+    public List<Appointment> findByStatusInRange(AppointmentStatus status, java.time.LocalDate from,
+                                                 java.time.LocalDate to, Long locationId) {
+        LocalDateTime start = from == null ? MIN : from.atStartOfDay();
+        LocalDateTime end = to == null ? MAX : to.plusDays(1).atStartOfDay();
+        return appointments.search(statusId(status), locationId, null, null, start, end)
+                .stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public void addHistory(StatusHistoryEntry e) {
         history.save(new StatusHistoryJpaEntity(e.appointmentId(), statusId(e.status()), e.changedByUserId(),
                 e.source().name(), e.reason(), e.changedAt()));

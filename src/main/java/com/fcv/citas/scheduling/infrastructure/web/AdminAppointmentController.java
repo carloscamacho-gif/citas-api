@@ -2,8 +2,10 @@ package com.fcv.citas.scheduling.infrastructure.web;
 
 import com.fcv.citas.scheduling.domain.port.in.AppointmentDecisionUseCase;
 import com.fcv.citas.scheduling.domain.port.in.PendingAppointmentFilter;
+import com.fcv.citas.scheduling.domain.port.in.UpcomingAppointmentsUseCase;
 import com.fcv.citas.scheduling.infrastructure.web.dto.AppointmentResponse;
 import com.fcv.citas.scheduling.infrastructure.web.dto.DecisionRequest;
+import com.fcv.citas.scheduling.infrastructure.web.dto.UpcomingAppointmentResponse;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,9 +26,11 @@ import java.util.List;
 public class AdminAppointmentController {
 
     private final AppointmentDecisionUseCase decisions;
+    private final UpcomingAppointmentsUseCase upcoming;
 
-    public AdminAppointmentController(AppointmentDecisionUseCase decisions) {
+    public AdminAppointmentController(AppointmentDecisionUseCase decisions, UpcomingAppointmentsUseCase upcoming) {
         this.decisions = decisions;
+        this.upcoming = upcoming;
     }
 
     @GetMapping("/pending-specialized")
@@ -37,6 +41,15 @@ public class AdminAppointmentController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return decisions.pendingSpecialized(new PendingAppointmentFilter(locationId, professionalId, specialtyId, date))
                 .stream().map(AppointmentResponse::from).toList();
+    }
+
+    /** S5 (WF-001/WF-003): citas APPROVED en un rango de días (por defecto hoy→mañana) para las automatizaciones. */
+    @GetMapping("/upcoming")
+    public List<UpcomingAppointmentResponse> upcoming(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) Long locationId) {
+        return upcoming.upcoming(from, to, locationId).stream().map(UpcomingAppointmentResponse::from).toList();
     }
 
     @PostMapping("/{id}/decision")

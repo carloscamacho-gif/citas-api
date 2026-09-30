@@ -23,16 +23,15 @@ usando la Data Table `FCV-Automatizaciones-Log`. Cada *sticky note* lleva las in
 - **FCV Webhook Bearer** — `httpHeaderAuth` (WF-002). Header `Authorization` = `Bearer <token>`, el mismo que
   configure el backend al emitir el webhook.
 
-## Contrato REST esperado (lo que el backend debe exponer)
+## Contrato REST (ya expuesto por el backend)
 
-Los workflows asumen este contrato; nuestro `citas-api` **todavía no lo expone** y debe completarse en S5:
+Nuestro `citas-api` **ya expone** ambas piezas (cableado de S5):
 
-1. **Lectura (WF-001, WF-003)** — `GET /api/v1/admin/appointments/upcoming?from=YYYY-MM-DD&to=YYYY-MM-DD`
-   (rol ADMIN o clave de servicio). Debe devolver un arreglo de citas `APPROVED` con al menos
-   `id, specialty, professional, location, durationMinutes, status, scheduledStartAt, scheduledEndAt`.
-   *Estado actual:* existe `GET /api/v1/admin/appointments/pending-specialized` (solo `REQUESTED`) y
-   `GET /api/v1/professional/agenda` (APPROVED por profesional); falta el listado global "próximas aprobadas".
-2. **Webhook de salida (WF-002)** — el backend debe hacer `POST` a la URL del webhook de n8n
+1. **Lectura (WF-001, WF-003)** — `GET /api/v1/admin/appointments/upcoming?from=YYYY-MM-DD&to=YYYY-MM-DD[&locationId=]`
+   (rol ADMIN). Devuelve un arreglo de citas `APPROVED` con
+   `id, specialty, professional, location, durationMinutes, status, scheduledStartAt, scheduledEndAt`
+   (nombres alineados con lo que consumen los workflows). Sin rango, usa hoy→mañana.
+2. **Webhook de salida (WF-002)** — el backend hace `POST` a la URL del webhook de n8n
    (`https://<n8n>/webhook/citas/fcv/status-events`) con `Authorization: Bearer <token>` y cuerpo:
 
    ```json
@@ -41,11 +40,13 @@ Los workflows asumen este contrato; nuestro `citas-api` **todavía no lo expone*
      "actorUserId": 1, "occurredAt": "<iso-8601>" }
    ```
 
-   *Estado actual:* no hay publicador de eventos saliente; debe añadirse (emisor que dispare en las
-   transiciones de aprobación/rechazo/cancelación, configurable por propiedades y desactivado por defecto).
+   Lo emite `N8nAppointmentEventPublisher` en las transiciones de **aprobación/rechazo** (ADMIN) y
+   **cancelación** (USER), **después del commit** y sin afectar la transacción si falla la entrega.
+   Está **desactivado por defecto**; se habilita con `app.n8n.webhook.enabled=true` + `url` + `bearer-token`
+   (`N8N_WEBHOOK_ENABLED`, `N8N_WEBHOOK_URL`, `N8N_WEBHOOK_BEARER_TOKEN`), que viven en entorno, no en el repo.
 
-> Estas dos piezas de backend son el "cableado" de S5 (exponer/invocar la automatización). Los JSON de n8n ya
-> están listos para consumirlas en cuanto existan.
+   Para usarlo: importar y **activar** WF-002 en n8n, conectar sus credenciales, copiar su URL de producción a
+   `N8N_WEBHOOK_URL` y el mismo bearer a la credencial *FCV Webhook Bearer* y a `N8N_WEBHOOK_BEARER_TOKEN`.
 
 ## Idempotencia y trazabilidad
 
