@@ -2,10 +2,13 @@ package com.fcv.citas.scheduling.infrastructure.web;
 
 import com.fcv.citas.scheduling.domain.port.in.AppointmentHistoryUseCase;
 import com.fcv.citas.scheduling.domain.port.in.BookAppointmentUseCase;
+import com.fcv.citas.scheduling.domain.port.in.CancelAppointmentUseCase;
+import com.fcv.citas.scheduling.domain.port.in.MyAppointmentsUseCase;
 import com.fcv.citas.scheduling.infrastructure.web.dto.AppointmentResponse;
 import com.fcv.citas.scheduling.infrastructure.web.dto.BookAppointmentRequest;
 import com.fcv.citas.scheduling.infrastructure.web.dto.StatusHistoryResponse;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -15,23 +18,30 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Agendamiento del USER (HU-015/HU-016) y consulta de auditoría (HU-024). */
+/** Agendamiento (HU-015/HU-016), "mis citas" (HU-017), cancelación (HU-018) y auditoría (HU-024) del USER. */
 @RestController
 @RequestMapping("/api/v1/appointments")
 public class AppointmentController {
 
     private final BookAppointmentUseCase book;
+    private final MyAppointmentsUseCase myAppointments;
+    private final CancelAppointmentUseCase cancel;
     private final AppointmentHistoryUseCase history;
 
-    public AppointmentController(BookAppointmentUseCase book, AppointmentHistoryUseCase history) {
+    public AppointmentController(BookAppointmentUseCase book, MyAppointmentsUseCase myAppointments,
+                                 CancelAppointmentUseCase cancel, AppointmentHistoryUseCase history) {
         this.book = book;
+        this.myAppointments = myAppointments;
+        this.cancel = cancel;
         this.history = history;
     }
 
@@ -40,6 +50,21 @@ public class AppointmentController {
     public AppointmentResponse create(@AuthenticationPrincipal Long userId,
                                       @Valid @RequestBody BookAppointmentRequest request) {
         return AppointmentResponse.from(book.book(userId, request.toCommand()));
+    }
+
+    /** HU-017: mis citas, filtrables por estado y fecha. */
+    @GetMapping
+    public List<AppointmentResponse> mine(@AuthenticationPrincipal Long userId,
+                                          @RequestParam(required = false) String status,
+                                          @RequestParam(required = false)
+                                          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return myAppointments.list(userId, status, date).stream().map(AppointmentResponse::from).toList();
+    }
+
+    /** HU-018: cancelar una cita futura no terminal propia. */
+    @PostMapping("/{id}/cancel")
+    public AppointmentResponse cancel(@AuthenticationPrincipal Long userId, @PathVariable Long id) {
+        return AppointmentResponse.from(cancel.cancel(userId, id));
     }
 
     @GetMapping("/{id}/history")

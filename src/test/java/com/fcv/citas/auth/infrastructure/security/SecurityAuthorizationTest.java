@@ -17,6 +17,8 @@ import com.fcv.citas.scheduling.domain.port.in.AppointmentHistoryUseCase;
 import com.fcv.citas.scheduling.domain.port.in.AvailabilityBlockUseCase;
 import com.fcv.citas.scheduling.domain.port.in.AvailabilityQueryUseCase;
 import com.fcv.citas.scheduling.domain.port.in.BookAppointmentUseCase;
+import com.fcv.citas.scheduling.domain.port.in.CancelAppointmentUseCase;
+import com.fcv.citas.scheduling.domain.port.in.MyAppointmentsUseCase;
 import com.fcv.citas.scheduling.infrastructure.web.AdminAppointmentController;
 import com.fcv.citas.scheduling.infrastructure.web.AppointmentController;
 import com.fcv.citas.scheduling.infrastructure.web.AvailabilityController;
@@ -88,6 +90,10 @@ class SecurityAuthorizationTest {
     private AvailabilityQueryUseCase availabilityQuery;
     @MockitoBean
     private BookAppointmentUseCase bookAppointment;
+    @MockitoBean
+    private MyAppointmentsUseCase myAppointments;
+    @MockitoBean
+    private CancelAppointmentUseCase cancelAppointment;
     @MockitoBean
     private AppointmentHistoryUseCase appointmentHistory;
 
@@ -169,6 +175,25 @@ class SecurityAuthorizationTest {
         mvc.perform(withBearer(post("/api/v1/appointments"), bearer(RoleName.USER))
                         .contentType(MediaType.APPLICATION_JSON).content(emptyBody))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void onlyUsersCanListTheirAppointmentsAndCancel() throws Exception {
+        var appointment = new com.fcv.citas.scheduling.domain.model.Appointment(5L, 9L, 7L, 1L, 1L,
+                com.fcv.citas.scheduling.domain.model.AppointmentStatus.CANCELLED, null, null,
+                java.time.LocalDateTime.now(), java.time.LocalDateTime.now().plusMinutes(30), null, null);
+        org.mockito.Mockito.when(cancelAppointment.cancel(org.mockito.ArgumentMatchers.anyLong(),
+                        org.mockito.ArgumentMatchers.anyLong()))
+                .thenReturn(new com.fcv.citas.scheduling.domain.model.AppointmentDetails(appointment, "P", "S", "L"));
+
+        for (RoleName role : new RoleName[]{RoleName.PROFESSIONAL, RoleName.ADMIN}) {
+            mvc.perform(withBearer(get("/api/v1/appointments"), bearer(role))).andExpect(status().isForbidden());
+            mvc.perform(withBearer(post("/api/v1/appointments/5/cancel"), bearer(role)))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(withBearer(get("/api/v1/appointments"), bearer(RoleName.USER))).andExpect(status().isOk());
+        mvc.perform(withBearer(post("/api/v1/appointments/5/cancel"), bearer(RoleName.USER)))
+                .andExpect(status().isOk());
     }
 
     @Test

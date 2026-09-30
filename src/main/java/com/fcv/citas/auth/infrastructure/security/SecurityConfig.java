@@ -57,8 +57,11 @@ public class SecurityConfig {
                         // Autorización por rol (RF-06/RF-07/RF-08 y siguientes).
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/professional/**").hasRole("PROFESSIONAL")
-                        // Solo el paciente (USER) agenda; disponibilidad e historial exigen sesión y validan ownership.
+                        // Solo el paciente (USER) agenda, consulta "mis citas" y cancela.
                         .requestMatchers(HttpMethod.POST, "/api/v1/appointments").hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/appointments").hasRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/appointments/*/cancel").hasRole("USER")
+                        // Disponibilidad e historial exigen sesión y validan ownership dentro del caso de uso.
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
