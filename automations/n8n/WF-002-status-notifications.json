@@ -1,0 +1,156 @@
+{
+  "name": "FCV-WF-002-status-notifications",
+  "nodes": [
+    {
+      "id": "7a366b25-e39c-4d91-976a-a91b95d2e12b",
+      "name": "Evento de cita (webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 192],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "citas/fcv/status-events",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "43802dee-990c-4aa7-8e4f-2ca6e17dbe27",
+      "credentials": { "httpHeaderAuth": { "id": "", "name": "FCV Webhook Bearer" } }
+    },
+    {
+      "id": "da9f70ce-8277-46e7-9b40-6f27c4820f78",
+      "name": "Normalizar evento",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [224, 192],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            { "id": "n-eid", "name": "eventId", "value": "={{ $json.body?.eventId ?? $json.eventId ?? \"\" }}", "type": "string" },
+            { "id": "n-type", "name": "eventType", "value": "={{ $json.body?.eventType ?? $json.eventType ?? \"\" }}", "type": "string" },
+            { "id": "n-aid", "name": "appointmentId", "value": "={{ $json.body?.appointmentId ?? $json.appointmentId ?? \"\" }}", "type": "string" },
+            { "id": "n-status", "name": "status", "value": "={{ $json.body?.status ?? $json.status ?? \"\" }}", "type": "string" },
+            { "id": "n-source", "name": "source", "value": "={{ $json.body?.source ?? $json.source ?? \"SYSTEM\" }}", "type": "string" },
+            { "id": "n-at", "name": "occurredAt", "value": "={{ $json.body?.occurredAt ?? $json.occurredAt ?? $now.toISO() }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "2cfd329d-04ae-4e1b-befb-5239989a0d25",
+      "name": "Payload valido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [448, 192],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            { "leftValue": "={{ $json.eventType }}", "operator": { "type": "string", "operation": "equals" }, "rightValue": "AppointmentStatusChanged" },
+            { "leftValue": "={{ $json.status }}", "operator": { "type": "string", "operation": "regex" }, "rightValue": "^(APPROVED|REJECTED|CANCELLED)$" },
+            { "leftValue": "={{ $json.appointmentId }}", "operator": { "type": "string", "operation": "notEmpty" } }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "022db033-6a8c-4f97-ad0e-e1bcd0a11498",
+      "name": "Construir mensaje",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [672, 96],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            { "id": "m-rcpt", "name": "recipient", "value": "operaciones-fcv@example.test", "type": "string" },
+            { "id": "m-subj", "name": "subject", "value": "=Cita #{{ $json.appointmentId }} {{ $json.status === \"APPROVED\" ? \"aprobada\" : $json.status === \"REJECTED\" ? \"rechazada\" : \"cancelada\" }}", "type": "string" },
+            { "id": "m-body", "name": "body", "value": "=Notificacion automatica del laboratorio FCV (datos ficticios).\n\nCita: {{ $json.appointmentId }}\nNuevo estado: {{ $json.status }}\nOrigen: {{ $json.source }}\nOcurrido: {{ $json.occurredAt }}\nEvento: {{ $json.eventId }}\n\n{{ $json.status === \"APPROVED\" ? \"Tu cita fue aprobada.\" : $json.status === \"REJECTED\" ? \"Tu cita fue rechazada; puedes solicitar otra desde la aplicacion.\" : \"Tu cita fue cancelada.\" }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "0d10c399-9694-47ad-9215-31bbc8c3744a",
+      "name": "Enviar notificacion",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [896, 96],
+      "parameters": {
+        "sendTo": "={{ $json.recipient }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": { "appendAttribution": false }
+      },
+      "onError": "continueErrorOutput",
+      "webhookId": "d85a2915-3585-4cd8-867d-a8fcb0b252e9",
+      "credentials": { "gmailOAuth2": { "id": "", "name": "FCV Gmail" } }
+    },
+    {
+      "id": "2da156a8-2642-4df3-899c-cd7bf57014c1",
+      "name": "Responder 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 0],
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 200,
+        "responseBody": "={{ { \"ok\": true, \"eventId\": $(\"Normalizar evento\").item.json.eventId, \"delivered\": true } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "fd9b54c0-06a0-4de0-a374-6d1f3b8b5a3a",
+      "name": "Responder 202 (reintento)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 192],
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 202,
+        "responseBody": "={{ { \"ok\": true, \"eventId\": $(\"Normalizar evento\").item.json.eventId, \"delivered\": false, \"note\": \"correo diferido\" } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "99a53095-aa7a-4bf0-b61d-a44928ba3786",
+      "name": "Responder 400",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [672, 288],
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 400,
+        "responseBody": "={{ { \"ok\": false, \"error\": \"payload invalido o evento no soportado\" } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "6595dc5f-55c9-433d-84e4-56dde17625b0",
+      "name": "Sticky Note a8465c30",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [496, 288],
+      "parameters": {
+        "content": "## WF-002 - Notificacion por cambio de estado\nRecibe el webhook de citas-api (publicador de eventos): Authorization Bearer, body {eventType, appointmentId, status, source, occurredAt}.\nValida, ramifica por estado y notifica por Gmail; responde 200 (enviado), 202 (correo diferido) o 400 (invalido).\n\nAntes de activar: conectar credenciales \"FCV Webhook Bearer\" (Header Auth: Authorization = Bearer <token del backend>) y \"FCV Gmail\" (OAuth2, solo envio). Ajustar el destinatario de laboratorio en \"Construir mensaje\".",
+        "color": 4
+      }
+    }
+  ],
+  "connections": {
+    "Evento de cita (webhook)": { "main": [[{ "node": "Normalizar evento", "type": "main", "index": 0 }]] },
+    "Normalizar evento": { "main": [[{ "node": "Payload valido?", "type": "main", "index": 0 }]] },
+    "Payload valido?": { "main": [[{ "node": "Construir mensaje", "type": "main", "index": 0 }], [{ "node": "Responder 400", "type": "main", "index": 0 }]] },
+    "Construir mensaje": { "main": [[{ "node": "Enviar notificacion", "type": "main", "index": 0 }]] },
+    "Enviar notificacion": { "main": [[{ "node": "Responder 200", "type": "main", "index": 0 }], [{ "node": "Responder 202 (reintento)", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": { "aiBuilderAssisted": true, "builderVariant": "mcp" }
+}

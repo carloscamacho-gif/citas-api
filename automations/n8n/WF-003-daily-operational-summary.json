@@ -1,0 +1,102 @@
+{
+  "name": "FCV-WF-003-daily-operational-summary",
+  "nodes": [
+    {
+      "id": "89d51ba4-6aa0-4eba-a1d9-9bc23df4c43e",
+      "name": "Cada dia 7am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [0, 0],
+      "parameters": { "rule": { "interval": [{ "field": "days", "triggerAtHour": 7 }] } }
+    },
+    {
+      "id": "68de4357-5237-4693-9abd-daef3ab3774d",
+      "name": "Configuracion",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [224, 0],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            { "id": "c-url", "name": "apiBaseUrl", "value": "https://CONFIGURAR-URL-DEL-TUNEL.invalid", "type": "string" },
+            { "id": "c-rcpt", "name": "recipient", "value": "operaciones-fcv@example.test", "type": "string" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "fb52b449-c3fb-4523-930c-923b52e0f13b",
+      "name": "Consultar citas de hoy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [448, 0],
+      "parameters": {
+        "url": "={{ $(\"Configuracion\").first().json.apiBaseUrl }}/api/v1/admin/appointments/upcoming",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpTemplatedCustomAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "from", "value": "={{ $today.toFormat(\"yyyy-MM-dd\") }}" },
+            { "name": "to", "value": "={{ $today.toFormat(\"yyyy-MM-dd\") }}" }
+          ]
+        },
+        "options": { "timeout": 15000 }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "credentials": { "httpCustomAuth": { "id": "", "name": "FCV API Auth" } }
+    },
+    {
+      "id": "78a0401c-c235-45e4-984e-aeaa381cce86",
+      "name": "Construir resumen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [672, 0],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map(i => i.json).filter(r => r && r.id != null);\nconst byLocation = {}; const bySpecialty = {}; const byStatus = {};\nfor (const r of rows) {\n  byLocation[r.location] = (byLocation[r.location] || 0) + 1;\n  bySpecialty[r.specialty] = (bySpecialty[r.specialty] || 0) + 1;\n  byStatus[r.status] = (byStatus[r.status] || 0) + 1;\n}\nconst fmt = (o) => { const ks = Object.keys(o).sort(); return ks.length ? ks.map(k => \"- \" + k + \": \" + o[k]).join(\"\\n\") : \"- (sin datos)\"; };\nconst total = rows.length;\nconst today = $today.toFormat(\"yyyy-MM-dd\");\nconst recipient = $(\"Configuracion\").first().json.recipient;\nconst subject = \"Resumen operativo FCV \" + today + \" - \" + total + \" cita(s) APPROVED\";\nconst body = \"Resumen operativo del laboratorio FCV para \" + today + \" (datos ficticios).\\n\\n\"\n  + \"Total de citas APPROVED: \" + total + \"\\n\\n\"\n  + \"Por sede:\\n\" + fmt(byLocation) + \"\\n\\n\"\n  + \"Por especialidad:\\n\" + fmt(bySpecialty) + \"\\n\\n\"\n  + \"Por estado:\\n\" + fmt(byStatus) + \"\\n\\n\"\n  + \"Nota: el backend expone citas APPROVED del dia; COMPLETED/NO_SHOW/CANCELLED requieren un endpoint adicional.\";\nreturn [{ json: { recipient: recipient, subject: subject, body: body, total: total } }];"
+      }
+    },
+    {
+      "id": "9117c267-d2ee-4750-95ee-dedcbc0e9c70",
+      "name": "Enviar resumen",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [896, 0],
+      "parameters": {
+        "sendTo": "={{ $json.recipient }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": { "appendAttribution": false }
+      },
+      "webhookId": "d1d4be70-c3e4-457a-91bc-0a3516cd71a8",
+      "credentials": { "gmailOAuth2": { "id": "", "name": "FCV Gmail" } }
+    },
+    {
+      "id": "20906b03-5f35-40b2-967f-9f51e6ca1346",
+      "name": "Sticky Note 3d5afdc1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [384, 0],
+      "parameters": {
+        "content": "## WF-003 - Resumen operativo diario (bonus)\nSchedule diario -> consulta las citas APPROVED del dia (GET /api/v1/admin/appointments/upcoming) -> agrupa por sede / especialidad / estado (Code) -> envia un correo de resumen por Gmail. Siempre envia (incluso 0 citas).\n\nAntes de activar: credenciales \"FCV API Auth\" y \"FCV Gmail\". En \"Configuracion\" poner la URL del tunel y el correo de operaciones.\nNota: el endpoint expone solo APPROVED; el desglose COMPLETED/NO_SHOW/CANCELLED requiere un endpoint adicional en el backend.",
+        "color": 4
+      }
+    }
+  ],
+  "connections": {
+    "Cada dia 7am": { "main": [[{ "node": "Configuracion", "type": "main", "index": 0 }]] },
+    "Configuracion": { "main": [[{ "node": "Consultar citas de hoy", "type": "main", "index": 0 }]] },
+    "Consultar citas de hoy": { "main": [[{ "node": "Construir resumen", "type": "main", "index": 0 }]] },
+    "Construir resumen": { "main": [[{ "node": "Enviar resumen", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": { "aiBuilderAssisted": true, "builderVariant": "mcp" }
+}

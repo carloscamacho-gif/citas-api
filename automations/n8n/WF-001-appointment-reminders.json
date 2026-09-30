@@ -1,0 +1,180 @@
+{
+  "name": "FCV-WF-001-appointment-reminders",
+  "nodes": [
+    {
+      "id": "83ddb63f-96b6-46b8-8549-76b2cb638051",
+      "name": "Cada hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [0, 96],
+      "parameters": { "rule": { "interval": [{ "field": "hours" }] } }
+    },
+    {
+      "id": "2c47a553-46c4-4f91-bebc-dab2eb9620fe",
+      "name": "Configuracion",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [224, 96],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            { "id": "c-url", "name": "apiBaseUrl", "value": "https://CONFIGURAR-URL-DEL-TUNEL.invalid", "type": "string" },
+            { "id": "c-test", "name": "testMode", "value": true, "type": "boolean" },
+            { "id": "c-rcpt", "name": "testRecipient", "value": "recordatorios-fcv@example.test", "type": "string" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "9fe760e4-711f-4d01-98ea-c490a7282f5c",
+      "name": "Consultar citas proximas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [448, 96],
+      "parameters": {
+        "url": "={{ $(\"Configuracion\").first().json.apiBaseUrl }}/api/v1/admin/appointments/upcoming",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpTemplatedCustomAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "from", "value": "={{ $today.toFormat(\"yyyy-MM-dd\") }}" },
+            { "name": "to", "value": "={{ $today.plus(1, \"days\").toFormat(\"yyyy-MM-dd\") }}" }
+          ]
+        },
+        "options": { "timeout": 15000 }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": { "httpCustomAuth": { "id": "", "name": "FCV API Auth" } }
+    },
+    {
+      "id": "6a49c8a4-3cba-4e3e-ae69-10c42a3ded4a",
+      "name": "Descartar ya enviados",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [672, 96],
+      "parameters": {
+        "operation": "rowNotExists",
+        "dataTableId": { "__rl": true, "mode": "id", "value": "chb0qgBYFVyTnCqs" },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            { "keyName": "dedupeKey", "keyValue": "={{ $json.id }}|{{ $json.scheduledStartAt }}" },
+            { "keyName": "workflow", "keyValue": "WF-001" },
+            { "keyName": "result", "keyValue": "SENT" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "bc42909d-7f85-45d0-956b-b806e2cca98a",
+      "name": "Preparar recordatorio",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [896, 96],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            { "id": "p-key", "name": "dedupeKey", "value": "={{ $json.id }}|{{ $json.scheduledStartAt }}", "type": "string" },
+            { "id": "p-rcpt", "name": "recipient", "value": "={{ $(\"Configuracion\").first().json.testRecipient }}", "type": "string" },
+            { "id": "p-mask", "name": "recipientMasked", "value": "={{ String($(\"Configuracion\").first().json.testRecipient).replace(/^(.).*(@.*)$/, \"$1***$2\") }}", "type": "string" },
+            { "id": "p-subj", "name": "subject", "value": "=Recordatorio de cita: {{ $json.specialty }} el {{ $json.scheduledStartAt.slice(0,10) }}", "type": "string" },
+            { "id": "p-body", "name": "body", "value": "=Recordatorio de cita (laboratorio FCV, datos ficticios).\n\nEspecialidad: {{ $json.specialty }}\nProfesional: {{ $json.professional }}\nSede: {{ $json.location }}\nInicio: {{ $json.scheduledStartAt }}\nDuracion: {{ $json.durationMinutes }} min\n\nSi no puedes asistir, cancela o reprograma desde la aplicacion.", "type": "string" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a7129f8c-b633-4506-b4ab-76004f084b16",
+      "name": "Enviar recordatorio",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [1120, 96],
+      "parameters": {
+        "sendTo": "={{ $json.recipient }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": { "appendAttribution": false }
+      },
+      "onError": "continueErrorOutput",
+      "webhookId": "270c102b-d6a7-4d02-8828-1157c29c17f9",
+      "credentials": { "gmailOAuth2": { "id": "", "name": "FCV Gmail" } }
+    },
+    {
+      "id": "cce7da49-42f7-452c-b22b-1dceb2145c04",
+      "name": "Registrar fallo",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [1344, 192],
+      "parameters": {
+        "dataTableId": { "__rl": true, "mode": "id", "value": "chb0qgBYFVyTnCqs" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "dedupeKey": "={{ $(\"Preparar recordatorio\").item.json.dedupeKey }}",
+            "workflow": "WF-001",
+            "appointmentId": "={{ $(\"Preparar recordatorio\").item.json.id }}",
+            "recipientMasked": "={{ $(\"Preparar recordatorio\").item.json.recipientMasked }}",
+            "result": "FAILED",
+            "detail": "Fallo al enviar el recordatorio (ver historial de ejecucion)",
+            "executionId": "={{ $execution.id }}",
+            "loggedAt": "={{ $now.toISO() }}"
+          }
+        }
+      }
+    },
+    {
+      "id": "fedb5336-f5e3-4e1e-ab2b-3f403066b096",
+      "name": "Registrar enviado",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [1344, 0],
+      "parameters": {
+        "dataTableId": { "__rl": true, "mode": "id", "value": "chb0qgBYFVyTnCqs" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "dedupeKey": "={{ $(\"Preparar recordatorio\").item.json.dedupeKey }}",
+            "workflow": "WF-001",
+            "appointmentId": "={{ $(\"Preparar recordatorio\").item.json.id }}",
+            "recipientMasked": "={{ $(\"Preparar recordatorio\").item.json.recipientMasked }}",
+            "result": "SENT",
+            "detail": "Recordatorio enviado",
+            "executionId": "={{ $execution.id }}",
+            "loggedAt": "={{ $now.toISO() }}"
+          }
+        }
+      }
+    },
+    {
+      "id": "69844d9f-4292-4170-85bd-454d69524697",
+      "name": "Sticky Note 7d66e4e3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [608, 192],
+      "parameters": {
+        "content": "## WF-001 - Recordatorio de citas proximas\nSchedule (cada hora) -> consulta citas APPROVED del backend (GET /api/v1/admin/appointments/upcoming, from/to) -> descarta las ya recordadas (Data Table) -> envia Gmail -> registra SENT/FAILED.\n\nAntes de activar: credenciales \"FCV API Auth\" (Templated Custom Auth: header Authorization = Bearer <token admin/servicio>) y \"FCV Gmail\" (OAuth2). En \"Configuracion\" poner la URL del tunel y el correo de laboratorio. testMode envia siempre al correo de laboratorio. Probar con ejecucion controlada antes de activar.",
+        "color": 4
+      }
+    }
+  ],
+  "connections": {
+    "Cada hora": { "main": [[{ "node": "Configuracion", "type": "main", "index": 0 }]] },
+    "Configuracion": { "main": [[{ "node": "Consultar citas proximas", "type": "main", "index": 0 }]] },
+    "Consultar citas proximas": { "main": [[{ "node": "Descartar ya enviados", "type": "main", "index": 0 }]] },
+    "Descartar ya enviados": { "main": [[{ "node": "Preparar recordatorio", "type": "main", "index": 0 }]] },
+    "Preparar recordatorio": { "main": [[{ "node": "Enviar recordatorio", "type": "main", "index": 0 }]] },
+    "Enviar recordatorio": { "main": [[{ "node": "Registrar enviado", "type": "main", "index": 0 }], [{ "node": "Registrar fallo", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": { "aiBuilderAssisted": true, "builderVariant": "mcp" }
+}
