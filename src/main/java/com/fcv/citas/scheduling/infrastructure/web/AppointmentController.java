@@ -4,8 +4,11 @@ import com.fcv.citas.scheduling.domain.port.in.AppointmentHistoryUseCase;
 import com.fcv.citas.scheduling.domain.port.in.BookAppointmentUseCase;
 import com.fcv.citas.scheduling.domain.port.in.CancelAppointmentUseCase;
 import com.fcv.citas.scheduling.domain.port.in.MyAppointmentsUseCase;
+import com.fcv.citas.scheduling.domain.port.in.RequestRescheduleUseCase;
 import com.fcv.citas.scheduling.infrastructure.web.dto.AppointmentResponse;
 import com.fcv.citas.scheduling.infrastructure.web.dto.BookAppointmentRequest;
+import com.fcv.citas.scheduling.infrastructure.web.dto.RescheduleRequestBody;
+import com.fcv.citas.scheduling.infrastructure.web.dto.RescheduleResponse;
 import com.fcv.citas.scheduling.infrastructure.web.dto.StatusHistoryResponse;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -35,13 +38,16 @@ public class AppointmentController {
     private final BookAppointmentUseCase book;
     private final MyAppointmentsUseCase myAppointments;
     private final CancelAppointmentUseCase cancel;
+    private final RequestRescheduleUseCase reschedule;
     private final AppointmentHistoryUseCase history;
 
     public AppointmentController(BookAppointmentUseCase book, MyAppointmentsUseCase myAppointments,
-                                 CancelAppointmentUseCase cancel, AppointmentHistoryUseCase history) {
+                                 CancelAppointmentUseCase cancel, RequestRescheduleUseCase reschedule,
+                                 AppointmentHistoryUseCase history) {
         this.book = book;
         this.myAppointments = myAppointments;
         this.cancel = cancel;
+        this.reschedule = reschedule;
         this.history = history;
     }
 
@@ -65,6 +71,14 @@ public class AppointmentController {
     @PostMapping("/{id}/cancel")
     public AppointmentResponse cancel(@AuthenticationPrincipal Long userId, @PathVariable Long id) {
         return AppointmentResponse.from(cancel.cancel(userId, id));
+    }
+
+    /** HU-019: solicitar reprogramación de una cita aprobada y futura propia. */
+    @PostMapping("/{id}/reschedule")
+    @ResponseStatus(HttpStatus.CREATED)
+    public RescheduleResponse reschedule(@AuthenticationPrincipal Long userId, @PathVariable Long id,
+                                         @Valid @RequestBody RescheduleRequestBody request) {
+        return RescheduleResponse.from(reschedule.request(userId, request.toCommand(id)));
     }
 
     @GetMapping("/{id}/history")

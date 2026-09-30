@@ -10,6 +10,7 @@ public interface SpringDataAvailabilitySlotRepository extends JpaRepository<Avai
  boolean existsByBlockIdAndAppointmentIdIsNotNull(Long blockId);
  void deleteByBlockId(Long blockId);
  List<AvailabilitySlotJpaEntity> findByAppointmentId(Long appointmentId);
+ @Query("select s from AvailabilitySlotJpaEntity s where s.appointmentId=:appt and s.startAt>=:start and s.startAt<:end") List<AvailabilitySlotJpaEntity> findByAppointmentIdInRange(@Param("appt")Long appt,@Param("start")LocalDateTime start,@Param("end")LocalDateTime end);
  @Lock(LockModeType.PESSIMISTIC_WRITE)
  @Query("select s from AvailabilitySlotJpaEntity s where s.blockId=:block and s.startAt in :starts order by s.startAt") List<AvailabilitySlotJpaEntity> lockSlots(@Param("block")Long block,@Param("starts")List<LocalDateTime> starts);
 }

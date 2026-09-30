@@ -61,6 +61,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/appointments").hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/appointments").hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/appointments/*/cancel").hasRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/appointments/*/reschedule").hasRole("USER")
                         // Disponibilidad e historial exigen sesión y validan ownership dentro del caso de uso.
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

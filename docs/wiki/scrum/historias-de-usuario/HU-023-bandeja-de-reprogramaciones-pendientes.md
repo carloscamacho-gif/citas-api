@@ -2,7 +2,7 @@
 id: HU-023
 tipo: historia-de-usuario
 titulo: "Bandeja de reprogramaciones pendientes"
-estado: Borrador
+estado: Completada
 epica: "[[EP-009-administracion-y-auditoria]]"
 esfuerzo: "Alto"
 sprint_sugerido: "Sprint 4"
@@ -99,15 +99,16 @@ Complementa [[HU-022-bandeja-de-citas-especializadas-pendientes]] dentro de la m
 
 | Elemento | Resultado | Evidencia | Observación |
 |---|---|---|---|
-| CA-01 | Pendiente | — | — |
-| CA-02 | Pendiente | — | — |
-| CA-03 | Pendiente | — | — |
-| DoD-01 | Pendiente | — | — |
+| CA-01 | Cumple | `RescheduleDecisionServiceTest.approvingReleasesOldFranjaAndMovesTheAppointmentToTheNewOne`; e2e navegador (cita → 10:30, slot 08:30 LIBRE, slot 10:30 confirmado) | Aprobar libera la franja antigua y confirma la nueva sobre la misma cita. |
+| CA-02 | Cumple | `RescheduleDecisionServiceTest.rejectingReleasesTheNewProvisionalFranjaAndKeepsTheAppointment`; e2e (cita intacta, franja provisional liberada) | — |
+| CA-03 | Cumple | `RescheduleDecisionServiceTest.rejectingWithoutAReasonIsInvalid`; e2e (rechazo sin motivo → 400) | — |
+| DoD-01 | Cumple | Suite backend 110/110 + e2e API + e2e navegador ([[LOOP_02-reprogramacion]]) | — |
 
 ## Historial de validación
 
 - 2026-09-18 — HU creada en estado `Borrador` durante la planificación inicial del backlog; sugerida para Sprint 4 (alcance de S4) según `GUIA_SESIONES_S2_S6.md`.
+- 2026-09-30 — Implementada y verificada en el ciclo Builder/Verifier [[LOOP_02-reprogramacion]] (S4). Estado → `Completada`.
 
 ## Notas y decisiones
 
-- Ninguna nota adicional.
+- Endpoints: `GET /api/v1/admin/reschedules/pending` (filtros sede/profesional/especialidad/fecha — RF-18) y `POST /api/v1/admin/reschedules/{id}/decision` (rol ADMIN). Aprobar/rechazar se resuelven de forma atómica con bloqueo de fila sobre la solicitud y la cita.

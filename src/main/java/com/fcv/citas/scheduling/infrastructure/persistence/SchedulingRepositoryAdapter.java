@@ -28,6 +28,7 @@ public class SchedulingRepositoryAdapter implements SchedulingRepositoryPort {
  }
  @Override public void assignSlots(List<Long> ids,Long appointmentId){List<AvailabilitySlotJpaEntity> values=slots.findAllById(ids);values.forEach(s->s.assign(appointmentId));slots.saveAll(values);}
  @Override public void releaseSlots(Long appointmentId){List<AvailabilitySlotJpaEntity> values=slots.findByAppointmentId(appointmentId);values.forEach(s->s.assign(null));slots.saveAll(values);}
+ @Override public void releaseSlotsInRange(Long appointmentId,LocalDateTime start,LocalDateTime end){List<AvailabilitySlotJpaEntity> values=slots.findByAppointmentIdInRange(appointmentId,start,end);values.forEach(s->s.assign(null));slots.saveAll(values);}
  private AvailabilityBlock map(AvailabilityBlockJpaEntity e){String name=locations.findById(e.getLocationId()).map(l->l.name()).orElse("");return new AvailabilityBlock(e.getId(),e.getProfessionalId(),e.getLocationId(),name,e.getStartAt(),e.getEndAt(),e.isActive());}
  private AvailabilitySlot map(AvailabilitySlotJpaEntity e){return new AvailabilitySlot(e.getId(),e.getBlockId(),e.getStartAt(),e.getEndAt(),e.getAppointmentId());}
 }

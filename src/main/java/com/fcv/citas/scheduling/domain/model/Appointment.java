@@ -33,6 +33,12 @@ public record Appointment(Long id, Long patientUserId, Long professionalId, Long
                 AppointmentStatus.REJECTED, reason, motive, startAt, endAt, null, null);
     }
 
+    /** Reprogramación aprobada: conserva profesional/especialidad/estado y solo mueve la franja horaria (RN-10). */
+    public Appointment rescheduledTo(LocalDateTime newStartAt, LocalDateTime newEndAt) {
+        return new Appointment(id, patientUserId, professionalId, locationId, specialtyId,
+                status, reason, rejectionReason, newStartAt, newEndAt, approvedByUserId, approvedAt);
+    }
+
     public Appointment cancelled() {
         return new Appointment(id, patientUserId, professionalId, locationId, specialtyId,
                 AppointmentStatus.CANCELLED, reason, rejectionReason, startAt, endAt, approvedByUserId, approvedAt);

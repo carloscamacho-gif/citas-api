@@ -91,7 +91,8 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    @ExceptionHandler({AvailabilityBlockNotFoundException.class, AppointmentNotFoundException.class})
+    @ExceptionHandler({AvailabilityBlockNotFoundException.class, AppointmentNotFoundException.class,
+            com.fcv.citas.scheduling.domain.exception.RescheduleRequestNotFoundException.class})
     public ResponseEntity<ApiError> handleSchedulingNotFound(RuntimeException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }

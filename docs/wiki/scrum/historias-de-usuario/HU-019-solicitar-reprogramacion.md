@@ -2,7 +2,7 @@
 id: HU-019
 tipo: historia-de-usuario
 titulo: "Solicitar reprogramación"
-estado: Borrador
+estado: Completada
 epica: "[[EP-007-gestion-de-citas-del-usuario]]"
 esfuerzo: "Alto"
 sprint_sugerido: "Sprint 4"
@@ -97,15 +97,17 @@ Conserva profesional y especialidad; cambiar de profesional se trata como una ci
 
 | Elemento | Resultado | Evidencia | Observación |
 |---|---|---|---|
-| CA-01 | Pendiente | — | — |
-| CA-02 | Pendiente | — | — |
-| CA-03 | Pendiente | — | — |
-| DoD-01 | Pendiente | — | — |
+| CA-01 | Cumple | `RequestRescheduleServiceTest.validRequestRetainsNewSlotWithoutTouchingOriginalAndStaysPending`; e2e `LOOP_02` (held=2, PENDING) | La nueva franja se retiene asignando sus slots a la misma cita; la original nunca se libera. |
+| CA-02 | Cumple | `RequestRescheduleServiceTest.cannotRescheduleANonApprovedAppointment` / `...cannotRescheduleAPastAppointment`; e2e (REQUESTED → 400) | — |
+| CA-03 | Cumple | `RequestRescheduleServiceTest.cannotChangeProfessionalWhenRescheduling`; e2e (professionalId distinto → 400) | — |
+| DoD-01 | Cumple | Suite backend 110/110 + e2e API + e2e navegador ([[LOOP_02-reprogramacion]]) | — |
 
 ## Historial de validación
 
 - 2026-09-18 — HU creada en estado `Borrador` durante la planificación inicial del backlog; sugerida para Sprint 4 (alcance de S4) según `GUIA_SESIONES_S2_S6.md`.
+- 2026-09-30 — Implementada y verificada en el ciclo Builder/Verifier [[LOOP_02-reprogramacion]] (S4). Estado → `Completada`.
 
 ## Notas y decisiones
 
-- Ninguna nota adicional.
+- La retención de la nueva franja se modela asignando sus slots a la **misma cita** (la cita ocupa temporalmente franja vieja + nueva); `SchedulingRepositoryPort.releaseSlotsInRange` permite liberar solo una de las dos al decidir. La cita no cambia de estado ni de horario mientras la solicitud está `PENDING`.
+- Endpoint: `POST /api/v1/appointments/{id}/reschedule` (rol USER).

@@ -19,7 +19,11 @@ import com.fcv.citas.scheduling.domain.port.in.AvailabilityQueryUseCase;
 import com.fcv.citas.scheduling.domain.port.in.BookAppointmentUseCase;
 import com.fcv.citas.scheduling.domain.port.in.CancelAppointmentUseCase;
 import com.fcv.citas.scheduling.domain.port.in.MyAppointmentsUseCase;
+import com.fcv.citas.scheduling.domain.port.in.RequestRescheduleUseCase;
+import com.fcv.citas.scheduling.domain.port.in.RescheduleDecisionUseCase;
+import com.fcv.citas.scheduling.domain.port.in.RescheduleInboxUseCase;
 import com.fcv.citas.scheduling.infrastructure.web.AdminAppointmentController;
+import com.fcv.citas.scheduling.infrastructure.web.AdminRescheduleController;
 import com.fcv.citas.scheduling.infrastructure.web.AppointmentController;
 import com.fcv.citas.scheduling.infrastructure.web.AvailabilityController;
 import com.fcv.citas.scheduling.infrastructure.web.ProfessionalAvailabilityController;
@@ -52,7 +56,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(controllers = {
         CatalogController.class, AdminSpecialtyController.class, AdminProfessionalController.class,
-        AdminAppointmentController.class, ProfessionalAvailabilityController.class,
+        AdminAppointmentController.class, AdminRescheduleController.class, ProfessionalAvailabilityController.class,
         AvailabilityController.class, AppointmentController.class
 })
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtTokenIssuerAdapter.class, GlobalExceptionHandler.class})
@@ -94,6 +98,12 @@ class SecurityAuthorizationTest {
     private MyAppointmentsUseCase myAppointments;
     @MockitoBean
     private CancelAppointmentUseCase cancelAppointment;
+    @MockitoBean
+    private RequestRescheduleUseCase requestReschedule;
+    @MockitoBean
+    private RescheduleInboxUseCase rescheduleInbox;
+    @MockitoBean
+    private RescheduleDecisionUseCase rescheduleDecision;
     @MockitoBean
     private AppointmentHistoryUseCase appointmentHistory;
 
@@ -193,6 +203,32 @@ class SecurityAuthorizationTest {
         }
         mvc.perform(withBearer(get("/api/v1/appointments"), bearer(RoleName.USER))).andExpect(status().isOk());
         mvc.perform(withBearer(post("/api/v1/appointments/5/cancel"), bearer(RoleName.USER)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void onlyUsersCanRequestReschedule() throws Exception {
+        String emptyBody = "{}";
+        for (RoleName role : new RoleName[]{RoleName.PROFESSIONAL, RoleName.ADMIN}) {
+            mvc.perform(withBearer(post("/api/v1/appointments/5/reschedule"), bearer(role))
+                            .contentType(MediaType.APPLICATION_JSON).content(emptyBody))
+                    .andExpect(status().isForbidden());
+        }
+        // Un USER pasa la autorización: el cuerpo vacío falla después, en la validación (400, no 403).
+        mvc.perform(withBearer(post("/api/v1/appointments/5/reschedule"), bearer(RoleName.USER))
+                        .contentType(MediaType.APPLICATION_JSON).content(emptyBody))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void onlyAdminSeesTheRescheduleInbox() throws Exception {
+        org.mockito.Mockito.when(rescheduleInbox.pending(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(java.util.List.of());
+        mvc.perform(withBearer(get("/api/v1/admin/reschedules/pending"), bearer(RoleName.USER)))
+                .andExpect(status().isForbidden());
+        mvc.perform(withBearer(get("/api/v1/admin/reschedules/pending"), bearer(RoleName.PROFESSIONAL)))
+                .andExpect(status().isForbidden());
+        mvc.perform(withBearer(get("/api/v1/admin/reschedules/pending"), bearer(RoleName.ADMIN)))
                 .andExpect(status().isOk());
     }
 

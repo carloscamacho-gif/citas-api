@@ -18,4 +18,7 @@ public interface SchedulingRepositoryPort {
     List<AvailabilitySlot> lockRequiredSlots(Long professionalId, Long locationId, LocalDateTime startAt, int count);
     void assignSlots(List<Long> slotIds, Long appointmentId);
     void releaseSlots(Long appointmentId);
+    /** Libera solo los slots de la cita cuyo inicio cae en [startAt, endAt): usado por la reprogramación
+     * para soltar una de las dos franjas (la vieja al aprobar, la nueva provisional al rechazar). */
+    void releaseSlotsInRange(Long appointmentId, LocalDateTime startAt, LocalDateTime endAt);
 }
