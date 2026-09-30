@@ -2,7 +2,7 @@
 id: HU-021
 tipo: historia-de-usuario
 titulo: "Cerrar atención (COMPLETED/NO_SHOW)"
-estado: Borrador
+estado: Completada
 epica: "[[EP-008-atencion-del-profesional]]"
 esfuerzo: "Bajo"
 sprint_sugerido: "Sprint 4"
@@ -87,15 +87,18 @@ Cierra el ciclo operativo de una cita ya atendida (o que debió atenderse). Debe
 
 | Elemento | Resultado | Evidencia | Observación |
 |---|---|---|---|
-| CA-01 | Pendiente | — | — |
-| CA-02 | Pendiente | — | — |
-| CA-03 | Pendiente | — | — |
-| DoD-01 | Pendiente | — | — |
+| CA-01 | Cumple | `CloseAttentionServiceTest.marksAPastApprovedAppointmentAsCompletedAndAudits`; e2e (cita 5 → COMPLETED, historial `SYSTEM APPROVED → PROFESSIONAL COMPLETED`) + e2e navegador | — |
+| CA-02 | Cumple | `CloseAttentionServiceTest.marksAPastApprovedAppointmentAsNoShow` | — |
+| CA-03 | Cumple | `CloseAttentionServiceTest.cannotCloseAnotherProfessionalsAppointment` (403); guardas extra: futura → 400, no aprobada → 400 | — |
+| DoD-01 | Cumple | Suite backend 121/121 + e2e API (COMPLETED, re-cierre terminal → 400, futura → 400, ADMIN → 403) + e2e navegador ([[LOOP-HU-021-cerrar-atencion]]) | — |
 
 ## Historial de validación
 
 - 2026-09-18 — HU creada en estado `Borrador` durante la planificación inicial del backlog; sugerida para Sprint 4 (alcance de S4) según `GUIA_SESIONES_S2_S6.md`.
+- 2026-09-30 — Implementada y verificada (backend + frontend) en S4; ver [[LOOP-HU-021-cerrar-atencion]]. Estado → `Completada`.
 
 ## Notas y decisiones
 
-- Incógnita no bloqueante heredada de la épica: definir el umbral exacto de "cita pasada/aplicable" antes de implementar T-01.
+- Umbral de "cita pasada/aplicable" (incógnita heredada, ahora resuelta): la cita se puede cerrar cuando **su inicio ya ocurrió** (`startAt <= ahora`) y está en estado `APPROVED`. No se permite cerrar una cita futura ni una ya terminal.
+- Endpoint: `POST /api/v1/professional/appointments/{id}/close` con cuerpo `{ "outcome": "COMPLETED" | "NO_SHOW" }` (rol PROFESSIONAL). El id autenticado se resuelve a `professionals.id` y se exige ownership (RF-16).
+- El historial registra el cambio con fuente `PROFESSIONAL` (nuevo origen añadido en la migración `V10`, RN-11).

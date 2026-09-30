@@ -17,6 +17,7 @@ import com.fcv.citas.scheduling.domain.port.in.AppointmentHistoryUseCase;
 import com.fcv.citas.scheduling.domain.port.in.AvailabilityBlockUseCase;
 import com.fcv.citas.scheduling.domain.port.in.AvailabilityQueryUseCase;
 import com.fcv.citas.scheduling.domain.port.in.BookAppointmentUseCase;
+import com.fcv.citas.scheduling.domain.port.in.CloseAttentionUseCase;
 import com.fcv.citas.scheduling.domain.port.in.CancelAppointmentUseCase;
 import com.fcv.citas.scheduling.domain.port.in.MyAppointmentsUseCase;
 import com.fcv.citas.scheduling.domain.port.in.ProfessionalAgendaUseCase;
@@ -28,6 +29,7 @@ import com.fcv.citas.scheduling.infrastructure.web.AdminRescheduleController;
 import com.fcv.citas.scheduling.infrastructure.web.AppointmentController;
 import com.fcv.citas.scheduling.infrastructure.web.AvailabilityController;
 import com.fcv.citas.scheduling.infrastructure.web.ProfessionalAgendaController;
+import com.fcv.citas.scheduling.infrastructure.web.ProfessionalAttentionController;
 import com.fcv.citas.scheduling.infrastructure.web.ProfessionalAvailabilityController;
 import com.fcv.citas.shared.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.Test;
@@ -59,7 +61,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(controllers = {
         CatalogController.class, AdminSpecialtyController.class, AdminProfessionalController.class,
         AdminAppointmentController.class, AdminRescheduleController.class, ProfessionalAvailabilityController.class,
-        ProfessionalAgendaController.class, AvailabilityController.class, AppointmentController.class
+        ProfessionalAgendaController.class, ProfessionalAttentionController.class,
+        AvailabilityController.class, AppointmentController.class
 })
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtTokenIssuerAdapter.class, GlobalExceptionHandler.class})
 @TestPropertySource(properties = {
@@ -94,6 +97,8 @@ class SecurityAuthorizationTest {
     private AvailabilityBlockUseCase availabilityBlocks;
     @MockitoBean
     private ProfessionalAgendaUseCase professionalAgenda;
+    @MockitoBean
+    private CloseAttentionUseCase closeAttention;
     @MockitoBean
     private AvailabilityQueryUseCase availabilityQuery;
     @MockitoBean
@@ -184,6 +189,25 @@ class SecurityAuthorizationTest {
         mvc.perform(withBearer(get("/api/v1/professional/agenda"), bearer(RoleName.USER))).andExpect(status().isForbidden());
         mvc.perform(withBearer(get("/api/v1/professional/agenda"), bearer(RoleName.ADMIN))).andExpect(status().isForbidden());
         mvc.perform(withBearer(get("/api/v1/professional/agenda"), bearer(RoleName.PROFESSIONAL))).andExpect(status().isOk());
+    }
+
+    @Test
+    void onlyProfessionalsCanCloseAttention() throws Exception {
+        var appointment = new com.fcv.citas.scheduling.domain.model.Appointment(5L, 9L, 1L, 1L, 1L,
+                com.fcv.citas.scheduling.domain.model.AppointmentStatus.COMPLETED, null, null,
+                java.time.LocalDateTime.now().minusHours(1), java.time.LocalDateTime.now().minusMinutes(30), null, null);
+        org.mockito.Mockito.when(closeAttention.close(org.mockito.ArgumentMatchers.anyLong(),
+                        org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new com.fcv.citas.scheduling.domain.model.AppointmentDetails(appointment, "P", "S", "L"));
+        String body = "{\"outcome\":\"COMPLETED\"}";
+        for (RoleName role : new RoleName[]{RoleName.USER, RoleName.ADMIN}) {
+            mvc.perform(withBearer(post("/api/v1/professional/appointments/5/close"), bearer(role))
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(withBearer(post("/api/v1/professional/appointments/5/close"), bearer(RoleName.PROFESSIONAL))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
     }
 
     // ---- USER -----------------------------------------------------------------------------------------

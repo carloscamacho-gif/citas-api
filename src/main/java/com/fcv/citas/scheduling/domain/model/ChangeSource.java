@@ -4,5 +4,6 @@ package com.fcv.citas.scheduling.domain.model;
 public enum ChangeSource {
     SYSTEM,
     USER,
-    ADMIN
+    ADMIN,
+    PROFESSIONAL
 }

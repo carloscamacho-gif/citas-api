@@ -43,4 +43,13 @@ public record Appointment(Long id, Long patientUserId, Long professionalId, Long
         return new Appointment(id, patientUserId, professionalId, locationId, specialtyId,
                 AppointmentStatus.CANCELLED, reason, rejectionReason, startAt, endAt, approvedByUserId, approvedAt);
     }
+
+    /** Cierre de atención (HU-021): la cita aprobada pasa a un estado terminal COMPLETED o NO_SHOW. */
+    public Appointment closedAs(AppointmentStatus outcome) {
+        if (outcome != AppointmentStatus.COMPLETED && outcome != AppointmentStatus.NO_SHOW) {
+            throw new IllegalArgumentException("El cierre de atención solo admite COMPLETED o NO_SHOW");
+        }
+        return new Appointment(id, patientUserId, professionalId, locationId, specialtyId,
+                outcome, reason, rejectionReason, startAt, endAt, approvedByUserId, approvedAt);
+    }
 }
